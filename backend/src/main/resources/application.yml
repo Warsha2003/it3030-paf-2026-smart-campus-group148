@@ -1,0 +1,8 @@
+spring:
+  data:
+    mongodb:
+      uri: "mongodb+srv://admin:12345@cluster0.irzzhre.mongodb.net/smart_campus_db_paf?retryWrites=true&w=majority"
+      database: smart_campus_db_paf
+  sql:
+    init:
+      mode: never
