@@ -35,8 +35,8 @@ export function useNotifications() {
       ]);
       if (notifRes.success) setNotifications(notifRes.data);
       if (countRes.success) setUnreadCount(countRes.data.count);
-    } catch (err) {
-      console.error('Failed to fetch notifications:', err);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ export function useNotifications() {
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (err) {
+    } catch {
       toast.error('Failed to mark notification as read.');
     }
   }, []);
@@ -69,7 +69,7 @@ export function useNotifications() {
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
       toast.success('All notifications marked as read.');
-    } catch (err) {
+    } catch {
       toast.error('Failed to mark all as read.');
     }
   }, []);
@@ -84,7 +84,7 @@ export function useNotifications() {
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
       toast.success('Notification deleted.');
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete notification.');
     }
   }, [notifications]);
