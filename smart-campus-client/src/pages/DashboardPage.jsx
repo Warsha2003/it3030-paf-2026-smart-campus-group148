@@ -6,10 +6,12 @@
  * Member 4 - Dashboard UI
  */
 
+import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
 import { Link } from 'react-router-dom';
 import { formatDate } from '../utils/dateUtils';
+import { getMyBookings } from '../services/bookingApi';
 
 const TYPE_ICONS = { BOOKING: '🗓️', TICKET: '🎫', COMMENT: '💬', SYSTEM: '🔔' };
 const TYPE_COLORS = { BOOKING: '#6366f1', TICKET: '#f59e0b', COMMENT: '#10b981', SYSTEM: '#64748b' };
@@ -17,8 +19,22 @@ const TYPE_COLORS = { BOOKING: '#6366f1', TICKET: '#f59e0b', COMMENT: '#10b981',
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
   const { notifications, unreadCount } = useNotifications();
+  const [bookingCount, setBookingCount] = useState(0);
 
   const recentNotifs = notifications.slice(0, 5);
+
+  useEffect(() => {
+    const loadBookings = async () => {
+      try {
+        const response = await getMyBookings();
+        if (response.success) setBookingCount(response.data?.length ?? 0);
+      } catch (error) {
+        console.error('Dashboard booking load error:', error);
+      }
+    };
+
+    loadBookings();
+  }, []);
 
   return (
     <div className="dashboard">
@@ -68,6 +84,13 @@ export default function DashboardPage() {
             <p className="stat-card__label">Auth Provider</p>
           </div>
         </div>
+        <div className="stat-card stat-card--blue">
+          <span className="stat-card__icon">🗓️</span>
+          <div>
+            <p className="stat-card__value">{bookingCount}</p>
+            <p className="stat-card__label">My Bookings</p>
+          </div>
+        </div>
       </div>
 
       {/* Quick actions */}
@@ -84,10 +107,10 @@ export default function DashboardPage() {
               <span>Manage Users</span>
             </Link>
           )}
-          <div className="action-card action-card--teal" style={{ cursor: 'default' }}>
+          <Link to="/bookings" className="action-card action-card--teal">
             <span>🗓️</span>
-            <span>Room Bookings</span>
-          </div>
+            <span>Manage Bookings</span>
+          </Link>
           <div className="action-card action-card--amber" style={{ cursor: 'default' }}>
             <span>🎫</span>
             <span>Support Tickets</span>
