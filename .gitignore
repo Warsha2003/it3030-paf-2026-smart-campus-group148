@@ -19,6 +19,29 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# virtual machine crash logs
 hs_err_pid*
 replay_pid*
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+smart-campus-client/node_modules/
+smart-campus-client/dist/
+
+# Backend
+backend/node_modules/
+backend/target/
+
+# Sensitive files - never commit these
+backend/src/main/resources/application.properties
+**/application.properties
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+*.iml
