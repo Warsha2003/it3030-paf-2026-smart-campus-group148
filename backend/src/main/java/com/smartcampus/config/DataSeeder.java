@@ -128,10 +128,27 @@ public class DataSeeder {
         );
 
         for (Resource resource : resources) {
-            if (!resourceRepository.existsByName(resource.getName())) {
+            java.util.Optional<Resource> existing = resourceRepository.findByName(resource.getName());
+            if (existing.isEmpty()) {
                 resourceRepository.save(resource);
                 logger.info("Seeded resource: {}", resource.getName());
+                continue;
+            }
+
+            if (requiresResourceMigration(existing.get(), resource)) {
+                resourceRepository.deleteByName(resource.getName());
+                resourceRepository.save(resource);
+                logger.info("Migrated legacy resource: {}", resource.getName());
             }
         }
+    }
+
+    private boolean requiresResourceMigration(Resource existing, Resource expected) {
+        return existing.getAvailabilityStart() == null
+                || existing.getAvailabilityEnd() == null
+                || existing.getType() != expected.getType()
+                || !java.util.Objects.equals(existing.getCapacity(), expected.getCapacity())
+                || !java.util.Objects.equals(existing.getLocation(), expected.getLocation())
+                || existing.getStatus() != expected.getStatus();
     }
 }

@@ -14,5 +14,7 @@ public interface ResourceRepository extends MongoRepository<Resource, String> {
 
     boolean existsByName(String name);
 
+    void deleteByName(String name);
+
     List<Resource> findAllByOrderByNameAsc();
 }
