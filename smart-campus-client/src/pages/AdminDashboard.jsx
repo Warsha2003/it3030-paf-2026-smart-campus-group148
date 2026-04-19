@@ -28,6 +28,7 @@ import {
   adminGetAllNotifications,
   adminGetUnreadCount,
 } from '../services/adminApi';
+import { getAllBookings } from '../services/bookingApi';
 import { formatDistanceToNow } from '../utils/dateUtils';
 
 /* ── helpers ──────────────────────────────────────────── */
@@ -55,13 +56,12 @@ const QUICK_ACTIONS = [
   },
   {
     id: 'qa-bookings',
-    to: '#',
+    to: '/admin/bookings',
     icon: '🗓️',
-    label: 'Room Bookings',
-    desc: 'Coming soon',
+    label: 'Booking Management',
+    desc: 'Review and manage booking requests',
     color: '#0ea5e9',
     bg: '#e0f2fe',
-    disabled: true,
   },
   {
     id: 'qa-tickets',
@@ -81,20 +81,23 @@ export default function AdminDashboard() {
 
   const [users,        setUsers]        = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [bookings,     setBookings]     = useState([]);
   const [unreadCount,  setUnreadCount]  = useState(0);
   const [loading,      setLoading]      = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [uRes, nRes, cRes] = await Promise.all([
+        const [uRes, nRes, cRes, bRes] = await Promise.all([
           adminGetAllUsers(),
           adminGetAllNotifications(),
           adminGetUnreadCount(),
+          getAllBookings(),
         ]);
         if (uRes.success) setUsers(uRes.data);
         if (nRes.success) setNotifications(nRes.data);
         if (cRes.success) setUnreadCount(cRes.data?.count ?? 0);
+        if (bRes.success) setBookings(bRes.data);
       } catch (err) {
         console.error('Admin dashboard load error:', err);
       } finally {
@@ -143,7 +146,7 @@ export default function AdminDashboard() {
           <StatCard icon="👥" label="Total Users"           value={users.length}         color="#6366f1" loading={loading} />
           <StatCard icon="🔔" label="Total Notifications"   value={notifications.length}  color="#f59e0b" loading={loading} />
           <StatCard icon="📬" label="Unread Notifications"  value={unreadCount}           color="#ef4444" loading={loading} />
-          <StatCard icon="🗓️" label="Room Bookings"         value="—"                    color="#0ea5e9" />
+          <StatCard icon="🗓️" label="Room Bookings"         value={bookings.length}        color="#0ea5e9" loading={loading} />
         </section>
 
         {/* ── Quick Actions ───────────────── */}

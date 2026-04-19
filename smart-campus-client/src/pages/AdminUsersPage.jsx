@@ -55,7 +55,7 @@ export default function AdminUsersPage() {
     try {
       const res = await adminGetAllUsers();
       if (res.success) setUsers(res.data);
-    } catch (err) {
+    } catch {
       toast.error('Failed to load users. Make sure you are logged in as ADMIN.');
     } finally {
       setLoading(false);
