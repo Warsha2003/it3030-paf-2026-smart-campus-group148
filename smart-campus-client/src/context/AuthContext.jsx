@@ -8,12 +8,11 @@
  * Member 4 - Auth Context
  */
 
-import { createContext, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { googleLogin, getCurrentUser } from '../services/authApi';
 import { saveToken, saveUser, clearAuth, getToken, getSavedUser } from '../utils/tokenUtils';
+import { AuthContext } from './auth-context';
 import toast from 'react-hot-toast';
-
-export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -41,7 +40,7 @@ export function AuthProvider({ children }) {
           setUser(res.data);
           saveUser(res.data);
         }
-      } catch (err) {
+      } catch {
         // Token is invalid/expired - clear everything
         clearAuth();
         setUser(null);
