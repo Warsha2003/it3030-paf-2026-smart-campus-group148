@@ -9,6 +9,9 @@
 .mtj.tmp/
 hs_err_pid*
 replay_pid*
+*.zip
+*.tar.gz
+*.rar
 
 # Maven / Spring Boot
 backend/target/
@@ -16,9 +19,18 @@ backend/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-# Node / Vite
+# Frontend
 frontend/node_modules/
 frontend/dist/
+smart-campus-client/node_modules/
+smart-campus-client/dist/
+
+# Backend
+backend/node_modules/
+
+# Sensitive files
+backend/src/main/resources/application.properties
+**/application.properties
 
 # IDE
 .idea/
@@ -29,3 +41,4 @@ frontend/dist/
 
 # OS
 .DS_Store
+Thumbs.db
