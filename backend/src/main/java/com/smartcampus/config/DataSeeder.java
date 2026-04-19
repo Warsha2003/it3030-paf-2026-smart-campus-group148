@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
@@ -32,6 +33,7 @@ public class DataSeeder {
     private static final Logger logger = LoggerFactory.getLogger(DataSeeder.class);
 
     @Bean
+    @Profile("!test")
     public CommandLineRunner seedData(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
             // Seed or Update ADMIN user
