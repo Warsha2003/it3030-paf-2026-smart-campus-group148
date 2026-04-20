@@ -1,13 +1,3 @@
-C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\group148\smartcampus\config\MongoDataSeeder.java
-C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\group148\smartcampus\controller\HomeController.java
-C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\group148\smartcampus\entity\Resource.java
-C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\group148\smartcampus\entity\User.java
-C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\group148\smartcampus\enums\ResourceStatus.java
-C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\group148\smartcampus\exception\GlobalExceptionHandler.java
-C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\group148\smartcampus\exception\ResourceNotFoundException.java
-C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\group148\smartcampus\repository\resource\ResourceRepository.java
-C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\group148\smartcampus\repository\user\UserRepository.java
-C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\group148\smartcampus\SmartCampusApplication.java
 C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\smartcampus\config\CorsConfig.java
 C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\smartcampus\config\DataSeeder.java
 C:\Users\Lenovo\Desktop\New paf\it3030-paf-2026-smart-campus-group148\backend\src\main\java\com\smartcampus\config\MongoConfig.java
