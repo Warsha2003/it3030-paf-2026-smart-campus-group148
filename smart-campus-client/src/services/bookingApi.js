@@ -33,6 +33,11 @@ export const getBookingById = async (id) => {
   return response.data;
 };
 
+export const updateBooking = async (id, payload) => {
+  const response = await api.put(`/api/bookings/${id}`, payload);
+  return response.data;
+};
+
 export const getAllBookings = async (filters = {}) => {
   const response = await api.get('/api/bookings', {
     params: buildParams(filters),
