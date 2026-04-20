@@ -80,6 +80,9 @@ public class SecurityConfig {
                 // Public endpoints - no token required
                 .requestMatchers("/api/health/**", "/health/**", "/error", "/api/auth/login").permitAll()
 
+                // Ticket endpoints - authenticated users only
+                .requestMatchers("/api/tickets/**").authenticated()
+
                 // ADMIN only endpoint - role management
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
 
