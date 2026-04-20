@@ -18,7 +18,9 @@ export function formatDistanceToNow(isoString) {
 export function formatDate(isoString) {
   if (!isoString) return '';
   return new Date(isoString).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   });
 }
 
@@ -43,5 +45,5 @@ export function formatSchedule(dateString, startTime, endTime) {
   const endLabel = formatTime(endTime);
 
   if (!startLabel || !endLabel) return dateLabel;
-  return `${dateLabel} • ${startLabel} - ${endLabel}`;
+  return `${dateLabel} | ${startLabel} - ${endLabel}`;
 }
