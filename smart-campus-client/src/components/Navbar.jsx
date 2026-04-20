@@ -53,6 +53,12 @@ export default function Navbar() {
         >
           Notifications
         </Link>
+        <Link
+          to="/resources"
+          className={`navbar__link ${isActive('/resources') ? 'navbar__link--active' : ''}`}
+        >
+          Resources
+        </Link>
         {isAdmin && (
           <Link
             to="/admin/dashboard"

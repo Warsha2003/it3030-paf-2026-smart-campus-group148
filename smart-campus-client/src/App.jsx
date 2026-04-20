@@ -31,6 +31,8 @@ import NotificationPage       from './pages/NotificationPage';
 import AdminDashboard         from './pages/AdminDashboard';
 import AdminUsersPage         from './pages/AdminUsersPage';
 import AdminNotificationsPage from './pages/AdminNotificationsPage';
+import AdminResourcesPage    from './pages/AdminResourcesPage';
+import ResourcesPage         from './pages/ResourcesPage';
 import UnauthorizedPage       from './pages/UnauthorizedPage';
 import OAuth2RedirectHandler  from './components/OAuth2RedirectHandler';
 
@@ -105,6 +107,10 @@ function App() {
               path="/admin/notifications"
               element={<AdminRoute><AdminNotificationsPage /></AdminRoute>}
             />
+            <Route
+              path="/admin/resources"
+              element={<AdminRoute><AdminResourcesPage /></AdminRoute>}
+            />
           </Route>
 
           {/* ── Regular pages (top Navbar) ────────── */}
@@ -116,6 +122,10 @@ function App() {
             <Route
               path="/notifications"
               element={<ProtectedRoute><NotificationPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/resources"
+              element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>}
             />
 
             {/* Error & fallback */}

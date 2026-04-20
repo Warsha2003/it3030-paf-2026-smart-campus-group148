@@ -20,6 +20,7 @@ const ROLE_COLORS = { ADMIN: '#ef4444', TECHNICIAN: '#f59e0b', USER: '#10b981' }
 const NAV_ITEMS = [
   { icon: '📊', label: 'Dashboard',          path: '/admin/dashboard' },
   { icon: '👥', label: 'User Management',    path: '/admin/users'     },
+  { icon: '🏢', label: 'Resources',          path: '/admin/resources' },
   { icon: '🔔', label: 'Notifications',      path: '/admin/notifications' },
   { icon: '🏠', label: 'Back to Home',       path: '/dashboard',  divider: true },
 ];
