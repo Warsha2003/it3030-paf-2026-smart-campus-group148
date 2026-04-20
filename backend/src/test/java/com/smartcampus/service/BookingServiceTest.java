@@ -7,6 +7,7 @@ import com.smartcampus.enums.NotificationType;
 import com.smartcampus.enums.ResourceStatus;
 import com.smartcampus.enums.ResourceType;
 import com.smartcampus.enums.Role;
+import com.smartcampus.exception.BadRequestException;
 import com.smartcampus.exception.ConflictException;
 import com.smartcampus.model.Booking;
 import com.smartcampus.model.Resource;
@@ -152,5 +153,51 @@ class BookingServiceTest {
                 eq(NotificationType.BOOKING),
                 eq(booking.getId())
         );
+    }
+
+    @Test
+    void updateBookingShouldAllowPendingRequestsOnly() {
+        Booking booking = new Booking();
+        booking.setId("booking-3");
+        booking.setResourceId(resource.getId());
+        booking.setUserId(requester.getId());
+        booking.setBookingDate(LocalDate.now().plusDays(2));
+        booking.setStartTime(LocalTime.of(9, 0));
+        booking.setEndTime(LocalTime.of(10, 0));
+        booking.setPurpose("Weekly sync");
+        booking.setExpectedAttendees(5);
+        booking.setStatus(BookingStatus.PENDING);
+
+        CreateBookingRequest updateRequest = new CreateBookingRequest();
+        updateRequest.setResourceId(resource.getId());
+        updateRequest.setBookingDate(LocalDate.now().plusDays(3));
+        updateRequest.setStartTime(LocalTime.of(11, 0));
+        updateRequest.setEndTime(LocalTime.of(12, 0));
+        updateRequest.setPurpose("Updated sync");
+        updateRequest.setExpectedAttendees(7);
+
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
+        when(bookingRepository.findByResourceIdAndBookingDateAndStatusIn(
+                eq(resource.getId()),
+                eq(updateRequest.getBookingDate()),
+                any())
+        ).thenReturn(List.of());
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.findById(requester.getId())).thenReturn(Optional.of(requester));
+
+        bookingService.updateBooking(booking.getId(), updateRequest, requester);
+
+        ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
+        verify(bookingRepository).save(bookingCaptor.capture());
+        assertEquals(updateRequest.getBookingDate(), bookingCaptor.getValue().getBookingDate());
+        assertEquals(updateRequest.getStartTime(), bookingCaptor.getValue().getStartTime());
+        assertEquals(updateRequest.getEndTime(), bookingCaptor.getValue().getEndTime());
+        assertEquals(updateRequest.getPurpose(), bookingCaptor.getValue().getPurpose());
+        assertEquals(updateRequest.getExpectedAttendees(), bookingCaptor.getValue().getExpectedAttendees());
+
+        booking.setStatus(BookingStatus.APPROVED);
+
+        assertThrows(BadRequestException.class, () -> bookingService.updateBooking(booking.getId(), updateRequest, requester));
     }
 }

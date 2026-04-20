@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -64,6 +65,16 @@ public class BookingController {
 
         BookingResponseDto booking = bookingService.getBookingById(id, userDetails.getUser());
         return ResponseEntity.ok(ApiResponse.success("Booking retrieved", booking));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<BookingResponseDto>> updateBooking(
+            @PathVariable String id,
+            @Valid @RequestBody CreateBookingRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        BookingResponseDto updated = bookingService.updateBooking(id, request, userDetails.getUser());
+        return ResponseEntity.ok(ApiResponse.success("Booking updated", updated));
     }
 
     @GetMapping

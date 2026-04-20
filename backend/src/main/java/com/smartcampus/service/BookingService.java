@@ -97,6 +97,33 @@ public class BookingService {
         return mapToDto(booking);
     }
 
+    public BookingResponseDto updateBooking(String bookingId, CreateBookingRequest request, User currentUser) {
+        validateTimeRange(request.getStartTime(), request.getEndTime());
+        validateBookingDate(request.getBookingDate());
+
+        Booking booking = getBooking(bookingId);
+        ensureOwnerOrAdmin(booking, currentUser);
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new BadRequestException("Only pending bookings can be edited.");
+        }
+
+        Resource resource = getResource(request.getResourceId());
+        validateResourceAvailability(resource, request.getStartTime(), request.getEndTime(), request.getExpectedAttendees());
+        assertNoConflict(resource.getId(), request.getBookingDate(), request.getStartTime(), request.getEndTime(),
+                CREATE_BLOCKING_STATUSES, booking.getId());
+
+        booking.setResourceId(resource.getId());
+        booking.setBookingDate(request.getBookingDate());
+        booking.setStartTime(request.getStartTime());
+        booking.setEndTime(request.getEndTime());
+        booking.setPurpose(request.getPurpose().trim());
+        booking.setExpectedAttendees(request.getExpectedAttendees());
+
+        Booking saved = bookingRepository.save(booking);
+        return mapToDto(saved);
+    }
+
     public BookingResponseDto reviewBooking(String bookingId, BookingDecisionRequest request, User adminUser) {
         Booking booking = getBooking(bookingId);
 
