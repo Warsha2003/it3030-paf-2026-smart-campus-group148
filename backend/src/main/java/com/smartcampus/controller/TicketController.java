@@ -21,7 +21,7 @@ public class TicketController {
     private TicketService ticketService;
 
     // POST /api/tickets — Create ticket (logged in user)
-    @PostMapping(consumes = "multipart/form-data")
+    @PostMapping
     public ResponseEntity<?> createTicket(
             @RequestPart("ticket") Ticket ticket,
             @RequestPart(value = "images", required = false) List<MultipartFile> images,

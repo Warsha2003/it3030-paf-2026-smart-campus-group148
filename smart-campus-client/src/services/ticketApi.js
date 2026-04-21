@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 const getAuthHeader = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('smart_campus_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
