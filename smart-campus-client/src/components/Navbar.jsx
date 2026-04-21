@@ -17,6 +17,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import NotificationBell from './NotificationBell';
 
+
 const ROLE_COLORS = {
   ADMIN: '#ef4444',
   TECHNICIAN: '#f59e0b',
@@ -51,13 +52,28 @@ export default function Navbar() {
           to="/notifications"
           className={`navbar__link ${isActive('/notifications') ? 'navbar__link--active' : ''}`}
         >
+          
           Notifications
+
+          <Link
+           to="/tickets"
+           className={`navbar__link ${isActive('/tickets') ? 'navbar__link--active' : ''}`}
+>
+          🔧 Tickets
+          </Link>
         </Link>
         {isAdmin && (
           <Link
             to="/admin/dashboard"
             className="navbar__link navbar__link--admin"
           >
+
+            <Link
+              to="/tickets"
+              className={`navbar__link ${isActive('/tickets') ? 'navbar__link--active' : ''}`}
+            >
+             🔧 Maintenance
+            </Link>
             📊 Admin Panel
           </Link>
         )}

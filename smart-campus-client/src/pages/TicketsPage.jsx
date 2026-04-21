@@ -1,0 +1,442 @@
+/**
+ * TicketsPage.jsx
+ * Module C – Maintenance & Incident Ticketing
+ * Member 3
+ */
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import ticketApi from '../services/ticketApi';
+import toast from 'react-hot-toast';
+
+const STATUS_COLORS = {
+  OPEN:        { bg: '#fef3c7', text: '#92400e', dot: '#f59e0b' },
+  IN_PROGRESS: { bg: '#dbeafe', text: '#1e40af', dot: '#3b82f6' },
+  RESOLVED:    { bg: '#d1fae5', text: '#065f46', dot: '#10b981' },
+  CLOSED:      { bg: '#f3f4f6', text: '#374151', dot: '#6b7280' },
+  REJECTED:    { bg: '#fee2e2', text: '#991b1b', dot: '#ef4444' },
+};
+
+const PRIORITY_COLORS = {
+  LOW:      '#10b981',
+  MEDIUM:   '#f59e0b',
+  HIGH:     '#ef4444',
+  CRITICAL: '#7c3aed',
+};
+
+export default function TicketsPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ROLE_ADMIN';
+
+  const [view, setView]               = useState('list');
+  const [tickets, setTickets]         = useState([]);
+  const [loading, setLoading]         = useState(false);
+  const [expandedId, setExpandedId]   = useState(null);
+  const [comments, setComments]       = useState([]);
+  const [newComment, setNewComment]   = useState('');
+  const [editingComment, setEditingComment] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('ALL');
+
+  // Form
+  const [form, setForm] = useState({
+    location: '', resourceId: '', category: 'EQUIPMENT',
+    description: '', priority: 'MEDIUM', preferredContact: ''
+  });
+  const [images, setImages] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchTickets = async () => {
+    setLoading(true);
+    try {
+      const res = isAdmin
+        ? await ticketApi.getAllTickets()
+        : await ticketApi.getMyTickets(user?.id);
+      setTickets(res.data);
+    } catch {
+      toast.error('Failed to load tickets');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (view === 'list') fetchTickets();
+  }, [view]);
+
+  const fetchComments = async (ticketId) => {
+    const res = await ticketApi.getComments(ticketId);
+    setComments(res.data);
+  };
+
+  const handleExpand = async (ticket) => {
+    if (expandedId === ticket.id) {
+      setExpandedId(null);
+      setComments([]);
+    } else {
+      setExpandedId(ticket.id);
+      await fetchComments(ticket.id);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const ticketData = { ...form, reportedByUserId: user?.id };
+      await ticketApi.createTicket(ticketData, images);
+      toast.success('Ticket submitted successfully!');
+      setForm({ location: '', resourceId: '', category: 'EQUIPMENT', description: '', priority: 'MEDIUM', preferredContact: '' });
+      setImages([]);
+      setView('list');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Failed to submit ticket');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleStatusUpdate = async (ticketId, newStatus) => {
+    const notes  = newStatus === 'RESOLVED' ? prompt('Enter resolution notes:') : null;
+    const reason = newStatus === 'REJECTED' ? prompt('Enter rejection reason:') : null;
+    try {
+      await ticketApi.updateTicketStatus(ticketId, newStatus, notes, reason);
+      toast.success(`Ticket marked as ${newStatus}`);
+      fetchTickets();
+      setExpandedId(null);
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Update failed');
+    }
+  };
+
+  const handleAssign = async (ticketId) => {
+    const techId = prompt('Enter technician ID to assign:');
+    if (!techId) return;
+    try {
+      await ticketApi.assignTechnician(ticketId, techId);
+      toast.success('Technician assigned!');
+      fetchTickets();
+    } catch {
+      toast.error('Failed to assign technician');
+    }
+  };
+
+  const handleDelete = async (ticketId) => {
+    if (!window.confirm('Delete this ticket permanently?')) return;
+    try {
+      await ticketApi.deleteTicket(ticketId);
+      toast.success('Ticket deleted');
+      fetchTickets();
+      setExpandedId(null);
+    } catch {
+      toast.error('Failed to delete ticket');
+    }
+  };
+
+  const handleAddComment = async (ticketId) => {
+    if (!newComment.trim()) return;
+    try {
+      await ticketApi.addComment(ticketId, user?.id, user?.name || user?.email, newComment);
+      setNewComment('');
+      fetchComments(ticketId);
+    } catch {
+      toast.error('Failed to add comment');
+    }
+  };
+
+  const handleEditComment = async (commentId, ticketId) => {
+    try {
+      await ticketApi.updateComment(commentId, user?.id, editingComment.content);
+      setEditingComment(null);
+      fetchComments(ticketId);
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Failed to update comment');
+    }
+  };
+
+  const handleDeleteComment = async (commentId, ticketId) => {
+    if (!window.confirm('Delete comment?')) return;
+    try {
+      await ticketApi.deleteComment(commentId, user?.id);
+      fetchComments(ticketId);
+    } catch {
+      toast.error('Failed to delete comment');
+    }
+  };
+
+  const filteredTickets = filterStatus === 'ALL'
+    ? tickets
+    : tickets.filter(t => t.status === filterStatus);
+
+  return (
+    <div style={{ padding: '24px', maxWidth: 900, margin: '0 auto' }}>
+
+      {/* Page Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>🔧 Maintenance & Incidents</h1>
+          <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 14 }}>
+            Report and track campus maintenance issues
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => setView('list')} style={tabBtn(view === 'list')}>
+            📋 {isAdmin ? 'All Tickets' : 'My Tickets'}
+          </button>
+          <button onClick={() => setView('create')} style={tabBtn(view === 'create')}>
+            + Report Issue
+          </button>
+        </div>
+      </div>
+
+      {/* ── CREATE FORM ─────────────────────────────────── */}
+      {view === 'create' && (
+        <div style={card}>
+          <h2 style={{ marginTop: 0 }}>Report an Incident</h2>
+          <form onSubmit={handleSubmit}>
+            <div style={grid2}>
+              <Field label="Location *">
+                <input name="location" value={form.location} required
+                  onChange={e => setForm({ ...form, location: e.target.value })}
+                  placeholder="e.g., Lab A - Room 201" style={input} />
+              </Field>
+              <Field label="Resource ID (optional)">
+                <input name="resourceId" value={form.resourceId}
+                  onChange={e => setForm({ ...form, resourceId: e.target.value })}
+                  placeholder="e.g., PROJ-001" style={input} />
+              </Field>
+              <Field label="Category *">
+                <select value={form.category}
+                  onChange={e => setForm({ ...form, category: e.target.value })} style={input}>
+                  {['EQUIPMENT','ELECTRICAL','PLUMBING','HVAC','NETWORK','SAFETY','OTHER']
+                    .map(o => <option key={o}>{o}</option>)}
+                </select>
+              </Field>
+              <Field label="Priority *">
+                <select value={form.priority}
+                  onChange={e => setForm({ ...form, priority: e.target.value })} style={input}>
+                  {['LOW','MEDIUM','HIGH','CRITICAL'].map(o => <option key={o}>{o}</option>)}
+                </select>
+              </Field>
+            </div>
+
+            <Field label="Description *">
+              <textarea value={form.description} required rows={4}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+                placeholder="Describe the issue in detail..." style={{ ...input, resize: 'vertical' }} />
+            </Field>
+
+            <Field label="Preferred Contact">
+              <input value={form.preferredContact}
+                onChange={e => setForm({ ...form, preferredContact: e.target.value })}
+                placeholder="email or phone number" style={input} />
+            </Field>
+
+            <Field label="Attach Images (max 3)">
+              <input type="file" accept="image/*" multiple
+                onChange={e => {
+                  const files = Array.from(e.target.files);
+                  if (files.length > 3) { toast.error('Max 3 images'); return; }
+                  setImages(files);
+                }} />
+              <small style={{ color: '#6b7280' }}>Upload up to 3 photos as evidence</small>
+            </Field>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button type="submit" disabled={submitting} style={primaryBtn}>
+                {submitting ? 'Submitting...' : '🚀 Submit Ticket'}
+              </button>
+              <button type="button" onClick={() => setView('list')} style={secondaryBtn}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ── TICKET LIST ──────────────────────────────────── */}
+      {view === 'list' && (
+        <div>
+          {/* Status Filter */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+            {['ALL','OPEN','IN_PROGRESS','RESOLVED','CLOSED','REJECTED'].map(s => (
+              <button key={s} onClick={() => setFilterStatus(s)}
+                style={{
+                  padding: '5px 14px', borderRadius: 20, border: 'none',
+                  cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                  background: filterStatus === s ? '#2563eb' : '#e5e7eb',
+                  color: filterStatus === s ? 'white' : '#374151'
+                }}>{s}</button>
+            ))}
+          </div>
+
+          {loading && <p style={{ color: '#6b7280' }}>Loading tickets...</p>}
+          {!loading && filteredTickets.length === 0 && (
+            <div style={{ ...card, textAlign: 'center', color: '#6b7280', padding: 40 }}>
+              No tickets found.
+            </div>
+          )}
+
+          {filteredTickets.map(ticket => {
+            const sc = STATUS_COLORS[ticket.status] || STATUS_COLORS.OPEN;
+            const isExpanded = expandedId === ticket.id;
+
+            return (
+              <div key={ticket.id} style={{ ...card, marginBottom: 16 }}>
+                {/* Ticket Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <strong style={{ fontSize: 16 }}>{ticket.category}</strong>
+                      <span style={{
+                        padding: '2px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600,
+                        background: sc.bg, color: sc.text
+                      }}>● {ticket.status}</span>
+                      <span style={{
+                        padding: '2px 10px', borderRadius: 12, fontSize: 12,
+                        background: '#f3f4f6', color: PRIORITY_COLORS[ticket.priority] || '#374151',
+                        fontWeight: 600
+                      }}>{ticket.priority}</span>
+                    </div>
+                    <p style={{ margin: '4px 0', color: '#6b7280', fontSize: 13 }}>
+                      📍 {ticket.location}
+                      {ticket.resourceId && ` · Resource: ${ticket.resourceId}`}
+                    </p>
+                  </div>
+                  <span style={{ fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap' }}>
+                    {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : ''}
+                  </span>
+                </div>
+
+                <p style={{ margin: '10px 0', color: '#374151' }}>{ticket.description}</p>
+
+                {ticket.resolutionNotes && (
+                  <div style={{ background: '#d1fae5', borderRadius: 6, padding: '8px 12px', marginBottom: 8 }}>
+                    <strong style={{ color: '#065f46', fontSize: 13 }}>✅ Resolution:</strong>
+                    <span style={{ color: '#065f46', fontSize: 13 }}> {ticket.resolutionNotes}</span>
+                  </div>
+                )}
+                {ticket.rejectionReason && (
+                  <div style={{ background: '#fee2e2', borderRadius: 6, padding: '8px 12px', marginBottom: 8 }}>
+                    <strong style={{ color: '#991b1b', fontSize: 13 }}>❌ Rejected:</strong>
+                    <span style={{ color: '#991b1b', fontSize: 13 }}> {ticket.rejectionReason}</span>
+                  </div>
+                )}
+                {ticket.assignedTechnicianId && (
+                  <p style={{ fontSize: 13, color: '#6b7280', margin: '4px 0' }}>
+                    👷 Assigned to: {ticket.assignedTechnicianId}
+                  </p>
+                )}
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+                  {isAdmin && ticket.status === 'OPEN' && <>
+                    <button onClick={() => handleAssign(ticket.id)} style={actionBtn('#7c3aed')}>
+                      Assign Technician
+                    </button>
+                    <button onClick={() => handleStatusUpdate(ticket.id, 'REJECTED')} style={actionBtn('#ef4444')}>
+                      Reject
+                    </button>
+                  </>}
+                  {ticket.status === 'IN_PROGRESS' && (
+                    <button onClick={() => handleStatusUpdate(ticket.id, 'RESOLVED')} style={actionBtn('#10b981')}>
+                      ✅ Mark Resolved
+                    </button>
+                  )}
+                  {isAdmin && ticket.status === 'RESOLVED' && (
+                    <button onClick={() => handleStatusUpdate(ticket.id, 'CLOSED')} style={actionBtn('#6b7280')}>
+                      Close Ticket
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button onClick={() => handleDelete(ticket.id)} style={actionBtn('#ef4444')}>
+                      🗑 Delete
+                    </button>
+                  )}
+                  <button onClick={() => handleExpand(ticket)} style={actionBtn('#2563eb')}>
+                    💬 {isExpanded ? 'Hide Comments' : 'Comments'}
+                  </button>
+                </div>
+
+                {/* Comments Section */}
+                {isExpanded && (
+                  <div style={{ marginTop: 16, borderTop: '1px solid #e5e7eb', paddingTop: 14 }}>
+                    <strong style={{ fontSize: 14 }}>💬 Comments</strong>
+
+                    {comments.length === 0 && (
+                      <p style={{ color: '#9ca3af', fontSize: 13 }}>No comments yet. Be the first!</p>
+                    )}
+
+                    {comments.map(c => (
+                      <div key={c.id} style={{
+                        background: '#f9fafb', borderRadius: 8,
+                        padding: '10px 14px', marginTop: 10
+                      }}>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>
+                          <strong>{c.username}</strong> · {c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}
+                        </div>
+
+                        {editingComment?.id === c.id ? (
+                          <div>
+                            <textarea value={editingComment.content} rows={2}
+                              onChange={e => setEditingComment({ ...editingComment, content: e.target.value })}
+                              style={{ ...input, marginBottom: 8 }} />
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button onClick={() => handleEditComment(c.id, ticket.id)} style={actionBtn('#2563eb')}>Save</button>
+                              <button onClick={() => setEditingComment(null)} style={actionBtn('#6b7280')}>Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <p style={{ margin: '0 0 6px' }}>{c.content}</p>
+                            {c.userId === user?.id && (
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button onClick={() => setEditingComment({ id: c.id, content: c.content })}
+                                  style={actionBtn('#7c3aed')}>Edit</button>
+                                <button onClick={() => handleDeleteComment(c.id, ticket.id)}
+                                  style={actionBtn('#ef4444')}>Delete</button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Add Comment */}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                      <input value={newComment}
+                        onChange={e => setNewComment(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleAddComment(ticket.id)}
+                        placeholder="Write a comment and press Enter..."
+                        style={{ ...input, flex: 1 }} />
+                      <button onClick={() => handleAddComment(ticket.id)} style={primaryBtn}>
+                        Post
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Tiny helpers ────────────────────────────────────────
+function Field({ label, children }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 14 }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const card       = { background: 'white', borderRadius: 12, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' };
+const grid2      = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 };
+const input      = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 14, boxSizing: 'border-box' };
+const primaryBtn = { padding: '9px 20px', background: '#2563eb', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 };
+const secondaryBtn = { padding: '9px 20px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 };
+const tabBtn = (active) => ({ padding: '8px 18px', background: active ? '#2563eb' : '#f3f4f6', color: active ? 'white' : '#374151', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: active ? 600 : 400 });
+const actionBtn = (bg) => ({ padding: '5px 12px', background: bg, color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 500 });

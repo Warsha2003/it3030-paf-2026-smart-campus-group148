@@ -33,6 +33,7 @@ import AdminUsersPage         from './pages/AdminUsersPage';
 import AdminNotificationsPage from './pages/AdminNotificationsPage';
 import UnauthorizedPage       from './pages/UnauthorizedPage';
 import OAuth2RedirectHandler  from './components/OAuth2RedirectHandler';
+import TicketsPage from './pages/TicketsPage';
 
 // ── Layout: top Navbar + centred content ──────────────────
 function MainLayout() {
@@ -116,6 +117,12 @@ function App() {
             <Route
               path="/notifications"
               element={<ProtectedRoute><NotificationPage /></ProtectedRoute>}
+            />
+
+            {/* Module C – Maintenance & Incident Ticketing – Member 3 */}
+            <Route
+            path="/tickets"
+            element={<ProtectedRoute><TicketsPage /></ProtectedRoute>}
             />
 
             {/* Error & fallback */}
