@@ -26,23 +26,25 @@ const PRIORITY_COLORS = {
 
 export default function TicketsPage() {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'ROLE_ADMIN';
 
-  const [view, setView]               = useState('list');
-  const [tickets, setTickets]         = useState([]);
-  const [loading, setLoading]         = useState(false);
-  const [expandedId, setExpandedId]   = useState(null);
-  const [comments, setComments]       = useState([]);
-  const [newComment, setNewComment]   = useState('');
+  // ✅ FIXED: support both 'ADMIN' and 'ROLE_ADMIN'
+  const isAdmin = user?.role === 'ROLE_ADMIN' || user?.role === 'ADMIN';
+
+  const [view, setView]                     = useState('list');
+  const [tickets, setTickets]               = useState([]);
+  const [loading, setLoading]               = useState(false);
+  const [expandedId, setExpandedId]         = useState(null);
+  const [comments, setComments]             = useState([]);
+  const [newComment, setNewComment]         = useState('');
   const [editingComment, setEditingComment] = useState(null);
-  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [filterStatus, setFilterStatus]     = useState('ALL');
 
-  // Form
+  // Form state
   const [form, setForm] = useState({
     location: '', resourceId: '', category: 'EQUIPMENT',
     description: '', priority: 'MEDIUM', preferredContact: ''
   });
-  const [images, setImages] = useState([]);
+  const [images, setImages]       = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
   const fetchTickets = async () => {
@@ -61,11 +63,15 @@ export default function TicketsPage() {
 
   useEffect(() => {
     if (view === 'list') fetchTickets();
-  }, [view]);
+  }, [view, isAdmin]);
 
   const fetchComments = async (ticketId) => {
-    const res = await ticketApi.getComments(ticketId);
-    setComments(res.data);
+    try {
+      const res = await ticketApi.getComments(ticketId);
+      setComments(res.data);
+    } catch {
+      toast.error('Failed to load comments');
+    }
   };
 
   const handleExpand = async (ticket) => {
@@ -74,6 +80,7 @@ export default function TicketsPage() {
       setComments([]);
     } else {
       setExpandedId(ticket.id);
+      setComments([]);
       await fetchComments(ticket.id);
     }
   };
@@ -85,7 +92,10 @@ export default function TicketsPage() {
       const ticketData = { ...form, reportedByUserId: user?.id };
       await ticketApi.createTicket(ticketData, images);
       toast.success('Ticket submitted successfully!');
-      setForm({ location: '', resourceId: '', category: 'EQUIPMENT', description: '', priority: 'MEDIUM', preferredContact: '' });
+      setForm({
+        location: '', resourceId: '', category: 'EQUIPMENT',
+        description: '', priority: 'MEDIUM', preferredContact: ''
+      });
       setImages([]);
       setView('list');
     } catch (e) {
@@ -135,7 +145,12 @@ export default function TicketsPage() {
   const handleAddComment = async (ticketId) => {
     if (!newComment.trim()) return;
     try {
-      await ticketApi.addComment(ticketId, user?.id, user?.name || user?.email, newComment);
+      await ticketApi.addComment(
+        ticketId,
+        user?.id,
+        user?.name || user?.email,
+        newComment
+      );
       setNewComment('');
       fetchComments(ticketId);
     } catch {
@@ -170,12 +185,12 @@ export default function TicketsPage() {
   return (
     <div style={{ padding: '24px', maxWidth: 900, margin: '0 auto' }}>
 
-      {/* Page Header */}
+      {/* ── Page Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>🔧 Maintenance & Incidents</h1>
           <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 14 }}>
-            Report and track campus maintenance issues
+            {isAdmin ? '👑 Admin View — Managing all campus tickets' : 'Report and track campus maintenance issues'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -188,56 +203,90 @@ export default function TicketsPage() {
         </div>
       </div>
 
-      {/* ── CREATE FORM ─────────────────────────────────── */}
+      {/* ── Admin Info Banner ── */}
+      {isAdmin && view === 'list' && (
+        <div style={{
+          background: '#eff6ff', border: '1px solid #bfdbfe',
+          borderRadius: 10, padding: '12px 18px', marginBottom: 20,
+          display: 'flex', alignItems: 'center', gap: 10
+        }}>
+          <span style={{ fontSize: 20 }}>👑</span>
+          <div>
+            <strong style={{ color: '#1e40af' }}>Admin Controls Active</strong>
+            <p style={{ margin: 0, fontSize: 13, color: '#3b82f6' }}>
+              You can assign technicians, reject tickets, mark resolved, close tickets and delete tickets.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── CREATE FORM ── */}
       {view === 'create' && (
         <div style={card}>
           <h2 style={{ marginTop: 0 }}>Report an Incident</h2>
           <form onSubmit={handleSubmit}>
             <div style={grid2}>
               <Field label="Location *">
-                <input name="location" value={form.location} required
+                <input
+                  name="location" value={form.location} required
                   onChange={e => setForm({ ...form, location: e.target.value })}
-                  placeholder="e.g., Lab A - Room 201" style={input} />
+                  placeholder="e.g., Lab A - Room 201" style={input}
+                />
               </Field>
               <Field label="Resource ID (optional)">
-                <input name="resourceId" value={form.resourceId}
+                <input
+                  name="resourceId" value={form.resourceId}
                   onChange={e => setForm({ ...form, resourceId: e.target.value })}
-                  placeholder="e.g., PROJ-001" style={input} />
+                  placeholder="e.g., PROJ-001" style={input}
+                />
               </Field>
               <Field label="Category *">
-                <select value={form.category}
-                  onChange={e => setForm({ ...form, category: e.target.value })} style={input}>
+                <select
+                  value={form.category}
+                  onChange={e => setForm({ ...form, category: e.target.value })}
+                  style={input}
+                >
                   {['EQUIPMENT','ELECTRICAL','PLUMBING','HVAC','NETWORK','SAFETY','OTHER']
                     .map(o => <option key={o}>{o}</option>)}
                 </select>
               </Field>
               <Field label="Priority *">
-                <select value={form.priority}
-                  onChange={e => setForm({ ...form, priority: e.target.value })} style={input}>
+                <select
+                  value={form.priority}
+                  onChange={e => setForm({ ...form, priority: e.target.value })}
+                  style={input}
+                >
                   {['LOW','MEDIUM','HIGH','CRITICAL'].map(o => <option key={o}>{o}</option>)}
                 </select>
               </Field>
             </div>
 
             <Field label="Description *">
-              <textarea value={form.description} required rows={4}
+              <textarea
+                value={form.description} required rows={4}
                 onChange={e => setForm({ ...form, description: e.target.value })}
-                placeholder="Describe the issue in detail..." style={{ ...input, resize: 'vertical' }} />
+                placeholder="Describe the issue in detail..."
+                style={{ ...input, resize: 'vertical' }}
+              />
             </Field>
 
             <Field label="Preferred Contact">
-              <input value={form.preferredContact}
+              <input
+                value={form.preferredContact}
                 onChange={e => setForm({ ...form, preferredContact: e.target.value })}
-                placeholder="email or phone number" style={input} />
+                placeholder="email or phone number" style={input}
+              />
             </Field>
 
             <Field label="Attach Images (max 3)">
-              <input type="file" accept="image/*" multiple
+              <input
+                type="file" accept="image/*" multiple
                 onChange={e => {
                   const files = Array.from(e.target.files);
-                  if (files.length > 3) { toast.error('Max 3 images'); return; }
+                  if (files.length > 3) { toast.error('Max 3 images allowed'); return; }
                   setImages(files);
-                }} />
+                }}
+              />
               <small style={{ color: '#6b7280' }}>Upload up to 3 photos as evidence</small>
             </Field>
 
@@ -253,10 +302,10 @@ export default function TicketsPage() {
         </div>
       )}
 
-      {/* ── TICKET LIST ──────────────────────────────────── */}
+      {/* ── TICKET LIST ── */}
       {view === 'list' && (
         <div>
-          {/* Status Filter */}
+          {/* Status Filter Tabs */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
             {['ALL','OPEN','IN_PROGRESS','RESOLVED','CLOSED','REJECTED'].map(s => (
               <button key={s} onClick={() => setFilterStatus(s)}
@@ -265,14 +314,30 @@ export default function TicketsPage() {
                   cursor: 'pointer', fontSize: 13, fontWeight: 500,
                   background: filterStatus === s ? '#2563eb' : '#e5e7eb',
                   color: filterStatus === s ? 'white' : '#374151'
-                }}>{s}</button>
+                }}>
+                {s}
+                {s !== 'ALL' && (
+                  <span style={{ marginLeft: 6, fontSize: 11 }}>
+                    ({tickets.filter(t => t.status === s).length})
+                  </span>
+                )}
+                {s === 'ALL' && (
+                  <span style={{ marginLeft: 6, fontSize: 11 }}>({tickets.length})</span>
+                )}
+              </button>
             ))}
           </div>
 
-          {loading && <p style={{ color: '#6b7280' }}>Loading tickets...</p>}
+          {loading && (
+            <div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>
+              Loading tickets...
+            </div>
+          )}
+
           {!loading && filteredTickets.length === 0 && (
             <div style={{ ...card, textAlign: 'center', color: '#6b7280', padding: 40 }}>
-              No tickets found.
+              <p style={{ fontSize: 40, margin: 0 }}>🎉</p>
+              <p>No tickets found{filterStatus !== 'ALL' ? ` with status "${filterStatus}"` : ''}.</p>
             </div>
           )}
 
@@ -282,6 +347,7 @@ export default function TicketsPage() {
 
             return (
               <div key={ticket.id} style={{ ...card, marginBottom: 16 }}>
+
                 {/* Ticket Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ flex: 1 }}>
@@ -293,7 +359,8 @@ export default function TicketsPage() {
                       }}>● {ticket.status}</span>
                       <span style={{
                         padding: '2px 10px', borderRadius: 12, fontSize: 12,
-                        background: '#f3f4f6', color: PRIORITY_COLORS[ticket.priority] || '#374151',
+                        background: '#f3f4f6',
+                        color: PRIORITY_COLORS[ticket.priority] || '#374151',
                         fontWeight: 600
                       }}>{ticket.priority}</span>
                     </div>
@@ -301,6 +368,12 @@ export default function TicketsPage() {
                       📍 {ticket.location}
                       {ticket.resourceId && ` · Resource: ${ticket.resourceId}`}
                     </p>
+                    {/* Show reporter email for admin */}
+                    {isAdmin && ticket.reportedByEmail && (
+                      <p style={{ margin: '2px 0', color: '#9ca3af', fontSize: 12 }}>
+                        👤 Reported by: {ticket.reportedByEmail}
+                      </p>
+                    )}
                   </div>
                   <span style={{ fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap' }}>
                     {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : ''}
@@ -309,61 +382,92 @@ export default function TicketsPage() {
 
                 <p style={{ margin: '10px 0', color: '#374151' }}>{ticket.description}</p>
 
-                {ticket.resolutionNotes && (
-                  <div style={{ background: '#d1fae5', borderRadius: 6, padding: '8px 12px', marginBottom: 8 }}>
-                    <strong style={{ color: '#065f46', fontSize: 13 }}>✅ Resolution:</strong>
-                    <span style={{ color: '#065f46', fontSize: 13 }}> {ticket.resolutionNotes}</span>
-                  </div>
-                )}
-                {ticket.rejectionReason && (
-                  <div style={{ background: '#fee2e2', borderRadius: 6, padding: '8px 12px', marginBottom: 8 }}>
-                    <strong style={{ color: '#991b1b', fontSize: 13 }}>❌ Rejected:</strong>
-                    <span style={{ color: '#991b1b', fontSize: 13 }}> {ticket.rejectionReason}</span>
-                  </div>
-                )}
-                {ticket.assignedTechnicianId && (
+                {ticket.preferredContact && (
                   <p style={{ fontSize: 13, color: '#6b7280', margin: '4px 0' }}>
-                    👷 Assigned to: {ticket.assignedTechnicianId}
+                    📞 Contact: {ticket.preferredContact}
                   </p>
                 )}
 
-                {/* Action Buttons */}
+                {ticket.resolutionNotes && (
+                  <div style={{
+                    background: '#d1fae5', borderRadius: 6,
+                    padding: '8px 12px', marginBottom: 8, marginTop: 8
+                  }}>
+                    <strong style={{ color: '#065f46', fontSize: 13 }}>✅ Resolution: </strong>
+                    <span style={{ color: '#065f46', fontSize: 13 }}>{ticket.resolutionNotes}</span>
+                  </div>
+                )}
+
+                {ticket.rejectionReason && (
+                  <div style={{
+                    background: '#fee2e2', borderRadius: 6,
+                    padding: '8px 12px', marginBottom: 8, marginTop: 8
+                  }}>
+                    <strong style={{ color: '#991b1b', fontSize: 13 }}>❌ Rejected: </strong>
+                    <span style={{ color: '#991b1b', fontSize: 13 }}>{ticket.rejectionReason}</span>
+                  </div>
+                )}
+
+                {ticket.assignedTechnicianId && (
+                  <p style={{ fontSize: 13, color: '#6b7280', margin: '4px 0' }}>
+                    👷 Assigned Technician ID: {ticket.assignedTechnicianId}
+                  </p>
+                )}
+
+                {/* ── Action Buttons ── */}
                 <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-                  {isAdmin && ticket.status === 'OPEN' && <>
-                    <button onClick={() => handleAssign(ticket.id)} style={actionBtn('#7c3aed')}>
-                      Assign Technician
-                    </button>
-                    <button onClick={() => handleStatusUpdate(ticket.id, 'REJECTED')} style={actionBtn('#ef4444')}>
-                      Reject
-                    </button>
-                  </>}
-                  {ticket.status === 'IN_PROGRESS' && (
+
+                  {/* ADMIN ONLY buttons */}
+                  {isAdmin && ticket.status === 'OPEN' && (
+                    <>
+                      <button onClick={() => handleAssign(ticket.id)} style={actionBtn('#7c3aed')}>
+                        👷 Assign Technician
+                      </button>
+                      <button onClick={() => handleStatusUpdate(ticket.id, 'IN_PROGRESS')} style={actionBtn('#3b82f6')}>
+                        ▶ Start Progress
+                      </button>
+                      <button onClick={() => handleStatusUpdate(ticket.id, 'REJECTED')} style={actionBtn('#ef4444')}>
+                        ✕ Reject
+                      </button>
+                    </>
+                  )}
+
+                  {/* IN_PROGRESS → RESOLVED (Admin or assigned technician) */}
+                  {ticket.status === 'IN_PROGRESS' && (isAdmin || ticket.assignedTechnicianId === user?.id) && (
                     <button onClick={() => handleStatusUpdate(ticket.id, 'RESOLVED')} style={actionBtn('#10b981')}>
                       ✅ Mark Resolved
                     </button>
                   )}
+
+                  {/* RESOLVED → CLOSED (Admin only) */}
                   {isAdmin && ticket.status === 'RESOLVED' && (
                     <button onClick={() => handleStatusUpdate(ticket.id, 'CLOSED')} style={actionBtn('#6b7280')}>
-                      Close Ticket
+                      🔒 Close Ticket
                     </button>
                   )}
+
+                  {/* DELETE (Admin only) */}
                   {isAdmin && (
                     <button onClick={() => handleDelete(ticket.id)} style={actionBtn('#ef4444')}>
                       🗑 Delete
                     </button>
                   )}
+
+                  {/* Comments (everyone) */}
                   <button onClick={() => handleExpand(ticket)} style={actionBtn('#2563eb')}>
                     💬 {isExpanded ? 'Hide Comments' : 'Comments'}
                   </button>
                 </div>
 
-                {/* Comments Section */}
+                {/* ── Comments Section ── */}
                 {isExpanded && (
                   <div style={{ marginTop: 16, borderTop: '1px solid #e5e7eb', paddingTop: 14 }}>
                     <strong style={{ fontSize: 14 }}>💬 Comments</strong>
 
                     {comments.length === 0 && (
-                      <p style={{ color: '#9ca3af', fontSize: 13 }}>No comments yet. Be the first!</p>
+                      <p style={{ color: '#9ca3af', fontSize: 13, marginTop: 8 }}>
+                        No comments yet. Be the first!
+                      </p>
                     )}
 
                     {comments.map(c => (
@@ -372,28 +476,44 @@ export default function TicketsPage() {
                         padding: '10px 14px', marginTop: 10
                       }}>
                         <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>
-                          <strong>{c.username}</strong> · {c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}
+                          <strong>{c.username}</strong> ·{' '}
+                          {c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}
                         </div>
 
                         {editingComment?.id === c.id ? (
                           <div>
-                            <textarea value={editingComment.content} rows={2}
+                            <textarea
+                              value={editingComment.content} rows={2}
                               onChange={e => setEditingComment({ ...editingComment, content: e.target.value })}
-                              style={{ ...input, marginBottom: 8 }} />
+                              style={{ ...input, marginBottom: 8 }}
+                            />
                             <div style={{ display: 'flex', gap: 6 }}>
-                              <button onClick={() => handleEditComment(c.id, ticket.id)} style={actionBtn('#2563eb')}>Save</button>
-                              <button onClick={() => setEditingComment(null)} style={actionBtn('#6b7280')}>Cancel</button>
+                              <button onClick={() => handleEditComment(c.id, ticket.id)} style={actionBtn('#2563eb')}>
+                                Save
+                              </button>
+                              <button onClick={() => setEditingComment(null)} style={actionBtn('#6b7280')}>
+                                Cancel
+                              </button>
                             </div>
                           </div>
                         ) : (
                           <div>
                             <p style={{ margin: '0 0 6px' }}>{c.content}</p>
+                            {/* Only comment owner can edit/delete */}
                             {c.userId === user?.id && (
                               <div style={{ display: 'flex', gap: 6 }}>
-                                <button onClick={() => setEditingComment({ id: c.id, content: c.content })}
-                                  style={actionBtn('#7c3aed')}>Edit</button>
-                                <button onClick={() => handleDeleteComment(c.id, ticket.id)}
-                                  style={actionBtn('#ef4444')}>Delete</button>
+                                <button
+                                  onClick={() => setEditingComment({ id: c.id, content: c.content })}
+                                  style={actionBtn('#7c3aed')}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteComment(c.id, ticket.id)}
+                                  style={actionBtn('#ef4444')}
+                                >
+                                  Delete
+                                </button>
                               </div>
                             )}
                           </div>
@@ -401,13 +521,15 @@ export default function TicketsPage() {
                       </div>
                     ))}
 
-                    {/* Add Comment */}
+                    {/* Add Comment Input */}
                     <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                      <input value={newComment}
+                      <input
+                        value={newComment}
                         onChange={e => setNewComment(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && handleAddComment(ticket.id)}
                         placeholder="Write a comment and press Enter..."
-                        style={{ ...input, flex: 1 }} />
+                        style={{ ...input, flex: 1 }}
+                      />
                       <button onClick={() => handleAddComment(ticket.id)} style={primaryBtn}>
                         Post
                       </button>
@@ -423,11 +545,13 @@ export default function TicketsPage() {
   );
 }
 
-// ── Tiny helpers ────────────────────────────────────────
+// ── Style helpers ────────────────────────────────────────
 function Field({ label, children }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 14 }}>{label}</label>
+      <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 14 }}>
+        {label}
+      </label>
       {children}
     </div>
   );
