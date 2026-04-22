@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// Uses same base URL pattern as your group's other services
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 const getAuthHeader = () => {
@@ -45,10 +44,7 @@ const ticketApi = {
       imageFiles.forEach(file => formData.append('images', file));
     }
     return axios.post(`${API_BASE}/tickets`, formData, {
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'multipart/form-data'
-      }
+      headers: { ...getAuthHeader() }
     });
   },
 
@@ -68,6 +64,20 @@ const ticketApi = {
 
   deleteTicket(id) {
     return axios.delete(`${API_BASE}/tickets/${id}`, {
+      headers: getAuthHeader()
+    });
+  },
+
+  // INNOVATION 1 - Get statistics
+  getStats() {
+    return axios.get(`${API_BASE}/tickets/stats`, {
+      headers: getAuthHeader()
+    });
+  },
+
+  // INNOVATION 2 - Search tickets
+  searchTickets(keyword) {
+    return axios.get(`${API_BASE}/tickets/search?keyword=${keyword}`, {
       headers: getAuthHeader()
     });
   },
