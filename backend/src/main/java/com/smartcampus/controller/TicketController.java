@@ -154,4 +154,23 @@ public class TicketController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
+    // INNOVATION 1 - GET /api/tickets/stats — Ticket statistics
+@GetMapping("/stats")
+public ResponseEntity<?> getStats() {
+    try {
+        return ResponseEntity.ok(ticketService.getTicketStatistics());
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    }
+}
+
+// INNOVATION 2 - GET /api/tickets/search?keyword=xyz — Search tickets
+@GetMapping("/search")
+public ResponseEntity<?> searchTickets(@RequestParam String keyword) {
+    try {
+        return ResponseEntity.ok(ticketService.searchTickets(keyword));
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    }
+}
 }

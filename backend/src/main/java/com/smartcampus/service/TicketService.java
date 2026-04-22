@@ -127,4 +127,46 @@ public class TicketService {
         if (!allowed.contains(next))
             throw new IllegalStateException("Invalid transition: " + current + " → " + next);
     }
+    // INNOVATION 1 - Get ticket statistics
+public Map<String, Object> getTicketStatistics() {
+    List<Ticket> all = ticketRepository.findAll();
+
+    long open        = all.stream().filter(t -> "OPEN".equals(t.getStatus())).count();
+    long inProgress  = all.stream().filter(t -> "IN_PROGRESS".equals(t.getStatus())).count();
+    long resolved    = all.stream().filter(t -> "RESOLVED".equals(t.getStatus())).count();
+    long closed      = all.stream().filter(t -> "CLOSED".equals(t.getStatus())).count();
+    long rejected    = all.stream().filter(t -> "REJECTED".equals(t.getStatus())).count();
+
+    long low         = all.stream().filter(t -> "LOW".equals(t.getPriority())).count();
+    long medium      = all.stream().filter(t -> "MEDIUM".equals(t.getPriority())).count();
+    long high        = all.stream().filter(t -> "HIGH".equals(t.getPriority())).count();
+    long critical    = all.stream().filter(t -> "CRITICAL".equals(t.getPriority())).count();
+
+    Map<String, Object> stats = new java.util.HashMap<>();
+    stats.put("total",      all.size());
+    stats.put("open",       open);
+    stats.put("inProgress", inProgress);
+    stats.put("resolved",   resolved);
+    stats.put("closed",     closed);
+    stats.put("rejected",   rejected);
+    stats.put("low",        low);
+    stats.put("medium",     medium);
+    stats.put("high",       high);
+    stats.put("critical",   critical);
+
+    return stats;
+}
+
+// INNOVATION 2 - Search tickets by keyword
+public List<Ticket> searchTickets(String keyword) {
+    String lower = keyword.toLowerCase();
+    return ticketRepository.findAll()
+            .stream()
+            .filter(t ->
+                (t.getDescription() != null && t.getDescription().toLowerCase().contains(lower)) ||
+                (t.getLocation()    != null && t.getLocation().toLowerCase().contains(lower))    ||
+                (t.getCategory()    != null && t.getCategory().toLowerCase().contains(lower))
+            )
+            .collect(java.util.stream.Collectors.toList());
+}
 }
