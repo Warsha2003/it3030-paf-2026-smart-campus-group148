@@ -136,16 +136,54 @@ export default function AdminResourcesPage() {
     e.preventDefault();
     setSaving(true);
 
+    const trimmedName = form.name.trim();
+    const trimmedLocation = form.location.trim();
+    const trimmedDescription = form.description.trim();
+
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      toast.error('Name must be between 2 and 100 characters.');
+      setSaving(false);
+      return;
+    }
+    if (trimmedLocation.length < 2 || trimmedLocation.length > 120) {
+      toast.error('Location must be between 2 and 120 characters.');
+      setSaving(false);
+      return;
+    }
+    if (trimmedDescription.length > 500) {
+      toast.error('Description must be 500 characters or less.');
+      setSaving(false);
+      return;
+    }
+    if (form.capacity !== '' && Number(form.capacity) < 0) {
+      toast.error('Capacity must be 0 or greater.');
+      setSaving(false);
+      return;
+    }
+
+    const parsedWindows = form.availabilityWindows
+      ? form.availabilityWindows.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    if (parsedWindows.length > 20) {
+      toast.error('Availability windows cannot exceed 20 entries.');
+      setSaving(false);
+      return;
+    }
+    const tooLongWindow = parsedWindows.find((w) => w.length > 80);
+    if (tooLongWindow) {
+      toast.error('Each availability window must be 80 characters or less.');
+      setSaving(false);
+      return;
+    }
+
     const payload = {
-      name: form.name,
+      name: trimmedName,
       type: form.type,
       capacity: form.capacity ? Number(form.capacity) : null,
-      location: form.location,
-      description: form.description,
+      location: trimmedLocation,
+      description: trimmedDescription,
       status: form.status,
-      availabilityWindows: form.availabilityWindows
-        ? form.availabilityWindows.split(',').map((s) => s.trim()).filter(Boolean)
-        : [],
+      availabilityWindows: parsedWindows,
     };
 
     try {

@@ -1,6 +1,7 @@
 package com.smartcampus.config;
 
 import com.smartcampus.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +11,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // NEW
 import org.springframework.security.crypto.password.PasswordEncoder; // NEW
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -41,14 +43,17 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final com.smartcampus.security.OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    private final ObjectProvider<ClientRegistrationRepository> clientRegistrationRepository;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          com.smartcampus.security.OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler) {
+                          com.smartcampus.security.OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler,
+                          ObjectProvider<ClientRegistrationRepository> clientRegistrationRepository) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
+        this.clientRegistrationRepository = clientRegistrationRepository;
     }
 
     @Bean
@@ -69,12 +74,6 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-            // Configure Backend-Driven OAuth2 Login
-            .oauth2Login(oauth2 -> oauth2
-                // When OAuth is successful, this handler checks DB, generates JWT, and sends 302 Redirect to Frontend
-                .successHandler(oAuth2AuthenticationSuccessHandler)
-            )
-
             // Define which endpoints are public vs protected
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints - no token required
@@ -89,6 +88,15 @@ public class SecurityConfig {
 
             // Add our JWT filter BEFORE the default username/password filter
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        // Configure Backend-Driven OAuth2 Login only when an OAuth2 client is configured.
+        // (Tests or minimal deployments may not define any client registrations.)
+        if (clientRegistrationRepository.getIfAvailable() != null) {
+            http.oauth2Login(oauth2 -> oauth2
+                    // When OAuth is successful, this handler checks DB, generates JWT, and sends 302 Redirect to Frontend
+                    .successHandler(oAuth2AuthenticationSuccessHandler)
+            );
+        }
 
         return http.build();
     }

@@ -73,6 +73,12 @@ export default function Navbar() {
       <div className="navbar__right">
         <NotificationBell />
 
+        <Link
+          to="/resources"
+          className={`navbar__link ${isActive('/resources') ? 'navbar__link--active' : ''}`}
+        >
+          Resources
+        </Link>
         <div className="navbar__user">
           <img
             src={user.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=6366f1&color=fff&size=40`}
