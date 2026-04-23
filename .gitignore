@@ -25,7 +25,7 @@ frontend/dist/
 frontend/.vite/
 smart-campus-client/node_modules/
 smart-campus-client/dist/
-frontend/.vite/
+smart-campus-client/.vite/
 
 # Backend
 backend/node_modules/
