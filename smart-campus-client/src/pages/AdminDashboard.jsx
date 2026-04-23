@@ -26,6 +26,7 @@ import StatCard from '../components/StatCard';
 import {
   adminGetAllUsers,
   adminGetAllNotifications,
+  adminGetResourceAnalytics,
   adminGetUnreadCount,
 } from '../services/adminApi';
 import { formatDistanceToNow } from '../utils/dateUtils';
@@ -82,19 +83,22 @@ export default function AdminDashboard() {
   const [users,        setUsers]        = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount,  setUnreadCount]  = useState(0);
+  const [resourceAnalytics, setResourceAnalytics] = useState({ topResources: [], peakBookingHours: [] });
   const [loading,      setLoading]      = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [uRes, nRes, cRes] = await Promise.all([
+        const [uRes, nRes, cRes, aRes] = await Promise.all([
           adminGetAllUsers(),
           adminGetAllNotifications(),
           adminGetUnreadCount(),
+          adminGetResourceAnalytics(),
         ]);
         if (uRes.success) setUsers(uRes.data);
         if (nRes.success) setNotifications(nRes.data);
         if (cRes.success) setUnreadCount(cRes.data?.count ?? 0);
+        if (aRes?.success) setResourceAnalytics(aRes.data || { topResources: [], peakBookingHours: [] });
       } catch (err) {
         console.error('Admin dashboard load error:', err);
       } finally {
@@ -107,6 +111,15 @@ export default function AdminDashboard() {
   const recentNotifs = [...notifications]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 6);
+
+  const topResources = resourceAnalytics?.topResources || [];
+  const peakHours = resourceAnalytics?.peakBookingHours || [];
+
+  const formatHourRange = (hour) => {
+    const start = String(hour).padStart(2, '0');
+    const end = String((hour + 1) % 24).padStart(2, '0');
+    return `${start}:00–${end}:00`;
+  };
 
   return (
     <div className="adm-layout">
@@ -183,6 +196,86 @@ export default function AdminDashboard() {
                 </Link>
               )
             )}
+          </div>
+        </section>
+
+        {/* ── Usage Analytics ─────────────── */}
+        <section className="adm-section">
+          <div className="adm-section__header">
+            <h2 className="adm-section__title">📊 Usage Analytics</h2>
+          </div>
+
+          <div className="adm-analytics-grid">
+            <div className="adm-analytics-card">
+              <div className="adm-analytics-card__header">
+                <h3 className="adm-analytics-card__title">Top Resources</h3>
+                <p className="adm-analytics-card__sub">By highest capacity (ACTIVE only)</p>
+              </div>
+
+              {loading && (
+                <div className="skeleton-list">
+                  {[1, 2, 3].map((i) => <div key={i} className="skeleton-item" />)}
+                </div>
+              )}
+
+              {!loading && topResources.length === 0 && (
+                <div className="empty-state empty-state--compact">
+                  <span className="empty-state__icon">🏫</span>
+                  <h3>No resources yet</h3>
+                  <p>Add resources to see top capacity items.</p>
+                </div>
+              )}
+
+              {!loading && topResources.length > 0 && (
+                <div className="adm-analytics-list">
+                  {topResources.map((r, idx) => (
+                    <div key={r.id || `${r.name}-${idx}`} className="adm-analytics-row">
+                      <span className="adm-analytics-rank">{idx + 1}</span>
+                      <div className="adm-analytics-main">
+                        <p className="adm-analytics-title">{r.name || 'Unnamed resource'}</p>
+                        <p className="adm-analytics-sub">{r.location || 'No location'}</p>
+                      </div>
+                      <span className="adm-analytics-metric">{r.capacity ?? 0}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="adm-analytics-card">
+              <div className="adm-analytics-card__header">
+                <h3 className="adm-analytics-card__title">Peak Booking Hours</h3>
+                <p className="adm-analytics-card__sub">From availability windows (proxy for booking demand)</p>
+              </div>
+
+              {loading && (
+                <div className="skeleton-list">
+                  {[1, 2, 3].map((i) => <div key={i} className="skeleton-item" />)}
+                </div>
+              )}
+
+              {!loading && peakHours.length === 0 && (
+                <div className="empty-state empty-state--compact">
+                  <span className="empty-state__icon">🕒</span>
+                  <h3>No availability data</h3>
+                  <p>Add availability windows to resources to see peak hours.</p>
+                </div>
+              )}
+
+              {!loading && peakHours.length > 0 && (
+                <div className="adm-analytics-list">
+                  {peakHours.map((h) => (
+                    <div key={h.hour} className="adm-analytics-row">
+                      <div className="adm-analytics-main">
+                        <p className="adm-analytics-title">{formatHourRange(h.hour)}</p>
+                        <p className="adm-analytics-sub">Resources available</p>
+                      </div>
+                      <span className="adm-analytics-metric">{h.resourceCount}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </section>
 

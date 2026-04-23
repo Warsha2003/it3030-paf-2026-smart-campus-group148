@@ -65,3 +65,11 @@ export const adminGetUnreadCount = async () => {
   const res = await api.get('/api/notifications/unread-count');
   return res.data;
 };
+
+// ── Analytics ───────────────────────────────────────────
+
+/** GET /api/admin/analytics/resources — resource-based usage analytics (admin only) */
+export const adminGetResourceAnalytics = async () => {
+  const res = await api.get('/api/admin/analytics/resources');
+  return res.data; // { success, data: { topResources: [], peakBookingHours: [] } }
+};
