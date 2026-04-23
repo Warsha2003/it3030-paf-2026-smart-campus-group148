@@ -17,7 +17,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
 import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Seeds the database with sample users when the application starts.
@@ -139,19 +141,50 @@ public class DataSeeder {
         );
 
         for (Resource resource : resources) {
-            java.util.Optional<Resource> existing = resourceRepository.findByName(resource.getName());
-            if (existing.isEmpty()) {
+            List<Resource> existingResources = resourceRepository.findAllByName(resource.getName());
+            if (existingResources.isEmpty()) {
                 resourceRepository.save(resource);
                 logger.info("Seeded resource: {}", resource.getName());
                 continue;
             }
 
-            if (requiresResourceMigration(existing.get(), resource)) {
-                resourceRepository.deleteByName(resource.getName());
-                resourceRepository.save(resource);
+            Resource canonicalResource = selectCanonicalResource(existingResources);
+            List<Resource> duplicates = existingResources.stream()
+                    .filter(existing -> !Objects.equals(existing.getId(), canonicalResource.getId()))
+                    .toList();
+
+            if (!duplicates.isEmpty()) {
+                resourceRepository.deleteAll(duplicates);
+                logger.warn("Removed {} duplicate resource records for {}", duplicates.size(), resource.getName());
+            }
+
+            if (requiresResourceMigration(canonicalResource, resource)) {
+                applySeededResource(canonicalResource, resource);
+                resourceRepository.save(canonicalResource);
                 logger.info("Migrated legacy resource: {}", resource.getName());
             }
         }
+    }
+
+    private Resource selectCanonicalResource(List<Resource> resources) {
+        return resources.stream()
+                .sorted(Comparator
+                        .comparing(Resource::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(resource -> resource.getId() == null ? "" : resource.getId()))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private void applySeededResource(Resource target, Resource seeded) {
+        target.setName(seeded.getName());
+        target.setType(seeded.getType());
+        target.setCapacity(seeded.getCapacity());
+        target.setLocation(seeded.getLocation());
+        target.setDescription(seeded.getDescription());
+        target.setStatus(seeded.getStatus());
+        target.setAvailabilityWindows(seeded.getAvailabilityWindows());
+        target.setAvailabilityStart(seeded.getAvailabilityStart());
+        target.setAvailabilityEnd(seeded.getAvailabilityEnd());
     }
 
     private boolean requiresResourceMigration(Resource existing, Resource expected) {
@@ -160,8 +193,8 @@ public class DataSeeder {
                 || existing.getAvailabilityWindows() == null
                 || existing.getAvailabilityWindows().isEmpty()
                 || existing.getType() != expected.getType()
-                || !java.util.Objects.equals(existing.getCapacity(), expected.getCapacity())
-                || !java.util.Objects.equals(existing.getLocation(), expected.getLocation())
+                || !Objects.equals(existing.getCapacity(), expected.getCapacity())
+                || !Objects.equals(existing.getLocation(), expected.getLocation())
                 || existing.getStatus() != expected.getStatus();
     }
 }

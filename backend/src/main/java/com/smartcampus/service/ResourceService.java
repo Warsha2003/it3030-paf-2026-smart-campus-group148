@@ -140,11 +140,13 @@ public class ResourceService {
 
     private void ensureUniqueName(String resourceName, String currentResourceId) {
         String normalizedName = resourceName == null ? "" : resourceName.trim();
-        resourceRepository.findByName(normalizedName).ifPresent(existing -> {
-            if (currentResourceId == null || !existing.getId().equals(currentResourceId)) {
-                throw new BadRequestException("A resource with this name already exists.");
-            }
-        });
+        boolean duplicateExists = currentResourceId == null
+                ? resourceRepository.existsByName(normalizedName)
+                : resourceRepository.existsByNameAndIdNot(normalizedName, currentResourceId);
+
+        if (duplicateExists) {
+            throw new BadRequestException("A resource with this name already exists.");
+        }
     }
 
     private boolean matchesSearch(Resource resource, String search) {
