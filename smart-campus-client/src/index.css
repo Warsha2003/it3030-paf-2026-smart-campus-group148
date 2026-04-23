@@ -1,4 +1,4 @@
-/*
+﻿/*
  * index.css
  * Global styles leveraging modern CSS (variables, grid, flexbox).
  * Clean, modern "glassmorphism" aesthetic suitable for a university project.
@@ -1148,7 +1148,7 @@
   font-size: 0.8rem;
 }
 
-/* ── Responsive ────────────────────────────────────────── */
+/* -- Responsive ------------------------------------------ */
 @media (max-width: 768px) {
   .sidebar {
     width: 62px;
@@ -1166,12 +1166,12 @@
   .adm-page-header__actions { width: 100%; justify-content: flex-end; }
 }
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    Module A – Facilities & Assets Catalogue Styles
    Member 1
-   ═══════════════════════════════════════════════════════ */
+   ------------------------------------------------------- */
 
-/* ── Admin filters row ──────────────────────────────── */
+/* -- Admin filters row -------------------------------- */
 .adm-filters {
   display: flex;
   gap: var(--spacing-3);
@@ -1188,7 +1188,7 @@
   min-width: 150px;
 }
 
-/* ── Modal ──────────────────────────────────────────── */
+/* -- Modal -------------------------------------------- */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1250,7 +1250,7 @@
   border-top: 1px solid var(--gray-100);
 }
 
-/* ── Form elements ──────────────────────────────────── */
+/* -- Form elements ------------------------------------ */
 .form-label {
   display: flex;
   flex-direction: column;
@@ -1278,7 +1278,7 @@
   color: var(--gray-400);
 }
 
-/* ── User-facing Resources Page ─────────────────────── */
+/* -- User-facing Resources Page ----------------------- */
 .resources-page__header {
   margin-bottom: var(--spacing-6);
 }
@@ -1292,7 +1292,7 @@
   margin-top: 4px;
 }
 
-/* ── Filters ────────────────────────────────────────── */
+/* -- Filters ------------------------------------------ */
 .resources-filters {
   margin-bottom: var(--spacing-6);
 }
@@ -1350,7 +1350,7 @@
   margin-bottom: var(--spacing-4);
 }
 
-/* ── Card Grid ──────────────────────────────────────── */
+/* -- Card Grid ---------------------------------------- */
 .resources-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1412,7 +1412,7 @@
 .resource-card__status--active   { color: var(--success); }
 .resource-card__status--inactive { color: var(--danger); }
 
-/* ── Resource Detail Modal ──────────────────────────── */
+/* -- Resource Detail Modal ---------------------------- */
 .resource-detail {
   padding: var(--spacing-6);
   display: flex;
@@ -1443,3 +1443,4 @@
   font-size: 0.8rem;
   font-weight: 500;
 }
+

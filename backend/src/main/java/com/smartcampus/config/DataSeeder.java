@@ -1,16 +1,23 @@
 package com.smartcampus.config;
 
+import com.smartcampus.enums.ResourceStatus;
+import com.smartcampus.enums.ResourceType;
 import com.smartcampus.enums.Role;
+import com.smartcampus.model.Resource;
 import com.smartcampus.model.User;
+import com.smartcampus.repository.ResourceRepository;
 import com.smartcampus.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
+import java.time.LocalTime;
+import java.util.List;
 
 /**
  * Seeds the database with sample users when the application starts.
@@ -32,8 +39,13 @@ public class DataSeeder {
     private static final Logger logger = LoggerFactory.getLogger(DataSeeder.class);
 
     @Bean
-    public CommandLineRunner seedData(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    @Profile("!test")
+    public CommandLineRunner seedData(UserRepository userRepository,
+                                      ResourceRepository resourceRepository,
+                                      PasswordEncoder passwordEncoder) {
         return args -> {
+            seedResources(resourceRepository);
+
             // Seed or Update ADMIN user
             java.util.Optional<User> existingAdmin = userRepository.findByEmail("pafprojectt@gmail.com");
             if (existingAdmin.isPresent()) {
@@ -99,5 +111,44 @@ public class DataSeeder {
 
             logger.info("Data seeding complete. Total users: {}", userRepository.count());
         };
+    }
+
+    private void seedResources(ResourceRepository resourceRepository) {
+        List<Resource> resources = List.of(
+                new Resource(null, "Conference Room A", ResourceType.MEETING_ROOM, 10, "Block A",
+                        LocalTime.of(8, 0), LocalTime.of(18, 0), ResourceStatus.ACTIVE, Instant.now(), Instant.now()),
+                new Resource(null, "Lecture Hall 1", ResourceType.LECTURE_HALL, 60, "Main Building",
+                        LocalTime.of(8, 0), LocalTime.of(18, 0), ResourceStatus.ACTIVE, Instant.now(), Instant.now()),
+                new Resource(null, "Lab Room 202", ResourceType.LAB, 25, "Engineering Wing",
+                        LocalTime.of(9, 0), LocalTime.of(17, 0), ResourceStatus.ACTIVE, Instant.now(), Instant.now()),
+                new Resource(null, "Study Room 101", ResourceType.STUDY_ROOM, 4, "Library",
+                        LocalTime.of(8, 0), LocalTime.of(20, 0), ResourceStatus.ACTIVE, Instant.now(), Instant.now()),
+                new Resource(null, "Projector PX-01", ResourceType.EQUIPMENT, 1, "Media Center",
+                        LocalTime.of(8, 0), LocalTime.of(17, 0), ResourceStatus.OUT_OF_SERVICE, Instant.now(), Instant.now())
+        );
+
+        for (Resource resource : resources) {
+            java.util.Optional<Resource> existing = resourceRepository.findByName(resource.getName());
+            if (existing.isEmpty()) {
+                resourceRepository.save(resource);
+                logger.info("Seeded resource: {}", resource.getName());
+                continue;
+            }
+
+            if (requiresResourceMigration(existing.get(), resource)) {
+                resourceRepository.deleteByName(resource.getName());
+                resourceRepository.save(resource);
+                logger.info("Migrated legacy resource: {}", resource.getName());
+            }
+        }
+    }
+
+    private boolean requiresResourceMigration(Resource existing, Resource expected) {
+        return existing.getAvailabilityStart() == null
+                || existing.getAvailabilityEnd() == null
+                || existing.getType() != expected.getType()
+                || !java.util.Objects.equals(existing.getCapacity(), expected.getCapacity())
+                || !java.util.Objects.equals(existing.getLocation(), expected.getLocation())
+                || existing.getStatus() != expected.getStatus();
     }
 }

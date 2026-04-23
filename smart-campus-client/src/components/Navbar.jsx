@@ -48,6 +48,12 @@ export default function Navbar() {
           Dashboard
         </Link>
         <Link
+          to="/bookings"
+          className={`navbar__link ${isActive('/bookings') ? 'navbar__link--active' : ''}`}
+        >
+          Bookings
+        </Link>
+        <Link
           to="/notifications"
           className={`navbar__link ${isActive('/notifications') ? 'navbar__link--active' : ''}`}
         >

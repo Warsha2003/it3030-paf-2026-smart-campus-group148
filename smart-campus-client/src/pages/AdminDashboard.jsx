@@ -1,23 +1,3 @@
-/**
- * AdminDashboard.jsx
- * Main admin overview page — accessible by ROLE_ADMIN only.
- *
- * Layout:  Sidebar (left) + content (right) — full-width, no top Navbar
- *
- * Sections:
- *   1. Gradient welcome banner with admin avatar
- *   2. Stat cards  – Total Users · Total Notifications · Unread count
- *   3. Quick actions – links to User Mgmt & Notification Mgmt pages
- *   4. Recent Activity – latest 6 notifications in a card list
- *
- * Data:
- *   adminGetAllUsers()           → GET /api/admin/users
- *   adminGetAllNotifications()   → GET /api/notifications
- *   adminGetUnreadCount()        → GET /api/notifications/unread-count
- *
- * Member 4 – Admin Dashboard Page
- */
-
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -29,10 +9,10 @@ import {
   adminGetResourceAnalytics,
   adminGetUnreadCount,
 } from '../services/adminApi';
+import { getAllBookings } from '../services/bookingApi';
 import { formatDistanceToNow } from '../utils/dateUtils';
 
-/* ── helpers ──────────────────────────────────────────── */
-const TYPE_ICON  = { BOOKING: '🗓️', TICKET: '🎫', COMMENT: '💬', SYSTEM: '🔔' };
+const TYPE_ICON = { BOOKING: '🗓️', TICKET: '🎫', COMMENT: '💬', SYSTEM: '🔔' };
 const TYPE_COLOR = { BOOKING: '#6366f1', TICKET: '#f59e0b', COMMENT: '#10b981', SYSTEM: '#64748b' };
 
 const QUICK_ACTIONS = [
@@ -46,6 +26,24 @@ const QUICK_ACTIONS = [
     bg: '#eef2ff',
   },
   {
+    id: 'qa-resources',
+    to: '/admin/resources',
+    icon: '🏢',
+    label: 'Facilities & Assets',
+    desc: 'Manage the campus resource catalogue',
+    color: '#8b5cf6',
+    bg: '#f5f3ff',
+  },
+  {
+    id: 'qa-bookings',
+    to: '/admin/bookings',
+    icon: '🗓️',
+    label: 'Booking Management',
+    desc: 'Review and manage booking requests',
+    color: '#0ea5e9',
+    bg: '#e0f2fe',
+  },
+  {
     id: 'qa-notifications',
     to: '/admin/notifications',
     icon: '🔔',
@@ -53,16 +51,6 @@ const QUICK_ACTIONS = [
     desc: 'Monitor all campus notifications',
     color: '#f59e0b',
     bg: '#fffbeb',
-  },
-  {
-    id: 'qa-bookings',
-    to: '#',
-    icon: '🗓️',
-    label: 'Room Bookings',
-    desc: 'Coming soon',
-    color: '#0ea5e9',
-    bg: '#e0f2fe',
-    disabled: true,
   },
   {
     id: 'qa-tickets',
@@ -76,40 +64,47 @@ const QUICK_ACTIONS = [
   },
 ];
 
-/* ── component ────────────────────────────────────────── */
 export default function AdminDashboard() {
   const { user } = useAuth();
 
-  const [users,        setUsers]        = useState([]);
+  const [users, setUsers] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount,  setUnreadCount]  = useState(0);
+  const [bookings, setBookings] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [resourceAnalytics, setResourceAnalytics] = useState({ topResources: [], peakBookingHours: [] });
-  const [loading,      setLoading]      = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [uRes, nRes, cRes, aRes] = await Promise.all([
-          adminGetAllUsers(),
-          adminGetAllNotifications(),
-          adminGetUnreadCount(),
-          adminGetResourceAnalytics(),
-        ]);
-        if (uRes.success) setUsers(uRes.data);
-        if (nRes.success) setNotifications(nRes.data);
-        if (cRes.success) setUnreadCount(cRes.data?.count ?? 0);
-        if (aRes?.success) setResourceAnalytics(aRes.data || { topResources: [], peakBookingHours: [] });
-      } catch (err) {
-        console.error('Admin dashboard load error:', err);
+        const [usersResponse, notificationsResponse, unreadResponse, analyticsResponse, bookingsResponse] =
+          await Promise.all([
+            adminGetAllUsers(),
+            adminGetAllNotifications(),
+            adminGetUnreadCount(),
+            adminGetResourceAnalytics(),
+            getAllBookings(),
+          ]);
+
+        if (usersResponse.success) setUsers(usersResponse.data || []);
+        if (notificationsResponse.success) setNotifications(notificationsResponse.data || []);
+        if (unreadResponse.success) setUnreadCount(unreadResponse.data?.count ?? 0);
+        if (analyticsResponse.success) {
+          setResourceAnalytics(analyticsResponse.data || { topResources: [], peakBookingHours: [] });
+        }
+        if (bookingsResponse.success) setBookings(bookingsResponse.data || []);
+      } catch (error) {
+        console.error('Admin dashboard load error:', error);
       } finally {
         setLoading(false);
       }
     };
+
     load();
   }, []);
 
   const recentNotifs = [...notifications]
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt))
     .slice(0, 6);
 
   const topResources = resourceAnalytics?.topResources || [];
@@ -118,23 +113,19 @@ export default function AdminDashboard() {
   const formatHourRange = (hour) => {
     const start = String(hour).padStart(2, '0');
     const end = String((hour + 1) % 24).padStart(2, '0');
-    return `${start}:00–${end}:00`;
+    return `${start}:00-${end}:00`;
   };
 
   return (
     <div className="adm-layout">
-      {/* ── Sidebar ───────────────────────── */}
       <Sidebar />
 
-      {/* ── Main content ──────────────────── */}
       <main className="adm-content">
-
-        {/* Welcome banner */}
         <header className="adm-banner">
           <div className="adm-banner__text">
             <h1 className="adm-banner__title">Admin Dashboard</h1>
             <p className="adm-banner__sub">
-              Welcome back, <strong>{user?.name?.split(' ')[0]}</strong> — here's your campus overview.
+              Welcome back, <strong>{user?.name?.split(' ')[0]}</strong> - here&apos;s your campus overview.
             </p>
           </div>
           <img
@@ -144,25 +135,34 @@ export default function AdminDashboard() {
             }
             alt={user?.name || 'Admin Avatar'}
             className="adm-banner__avatar"
-            onError={(e) => {
-              // Fallback if ui-avatars fails
-              e.target.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect fill='%23ffffff' stroke='%234f46e5' stroke-width='2' width='80' height='80'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='Arial' font-size='32' fill='%234f46e5'%3E${(user?.name || 'A').charAt(0).toUpperCase()}%3C/text%3E%3C/svg%3E`;
+            onError={(event) => {
+              event.target.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect fill='%23ffffff' stroke='%234f46e5' stroke-width='2' width='80' height='80'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='Arial' font-size='32' fill='%234f46e5'%3E${(user?.name || 'A').charAt(0).toUpperCase()}%3C/text%3E%3C/svg%3E`;
             }}
           />
         </header>
 
-        {/* ── Stat cards ──────────────────── */}
         <section className="adm-stats" aria-label="Overview statistics">
-          <StatCard icon="👥" label="Total Users"           value={users.length}         color="#6366f1" loading={loading} />
-          <StatCard icon="🔔" label="Total Notifications"   value={notifications.length}  color="#f59e0b" loading={loading} />
-          <StatCard icon="📬" label="Unread Notifications"  value={unreadCount}           color="#ef4444" loading={loading} />
-          <StatCard icon="🗓️" label="Room Bookings"         value="—"                    color="#0ea5e9" />
+          <StatCard icon="👥" label="Total Users" value={users.length} color="#6366f1" loading={loading} />
+          <StatCard
+            icon="🔔"
+            label="Total Notifications"
+            value={notifications.length}
+            color="#f59e0b"
+            loading={loading}
+          />
+          <StatCard
+            icon="📬"
+            label="Unread Notifications"
+            value={unreadCount}
+            color="#ef4444"
+            loading={loading}
+          />
+          <StatCard icon="🗓️" label="Room Bookings" value={bookings.length} color="#0ea5e9" loading={loading} />
         </section>
 
-        {/* ── Quick Actions ───────────────── */}
         <section className="adm-section">
           <div className="adm-section__header">
-            <h2 className="adm-section__title">⚡ Quick Actions</h2>
+            <h2 className="adm-section__title">Quick Actions</h2>
           </div>
           <div className="adm-actions-grid">
             {QUICK_ACTIONS.map((action) =>
@@ -170,11 +170,15 @@ export default function AdminDashboard() {
                 <div
                   key={action.id}
                   className="adm-action-card adm-action-card--disabled"
-                  style={{ background: action.bg, borderColor: action.color + '33' }}
+                  style={{ background: action.bg, borderColor: `${action.color}33` }}
                 >
-                  <span className="adm-action-card__icon" style={{ color: action.color }}>{action.icon}</span>
+                  <span className="adm-action-card__icon" style={{ color: action.color }}>
+                    {action.icon}
+                  </span>
                   <div>
-                    <p className="adm-action-card__label" style={{ color: action.color }}>{action.label}</p>
+                    <p className="adm-action-card__label" style={{ color: action.color }}>
+                      {action.label}
+                    </p>
                     <p className="adm-action-card__desc">{action.desc}</p>
                   </div>
                   <span className="adm-action-card__pill">Soon</span>
@@ -185,36 +189,43 @@ export default function AdminDashboard() {
                   id={action.id}
                   to={action.to}
                   className="adm-action-card"
-                  style={{ background: action.bg, borderColor: action.color + '33' }}
+                  style={{ background: action.bg, borderColor: `${action.color}33` }}
                 >
-                  <span className="adm-action-card__icon" style={{ color: action.color }}>{action.icon}</span>
+                  <span className="adm-action-card__icon" style={{ color: action.color }}>
+                    {action.icon}
+                  </span>
                   <div>
-                    <p className="adm-action-card__label" style={{ color: action.color }}>{action.label}</p>
+                    <p className="adm-action-card__label" style={{ color: action.color }}>
+                      {action.label}
+                    </p>
                     <p className="adm-action-card__desc">{action.desc}</p>
                   </div>
-                  <span className="adm-action-card__arrow" style={{ color: action.color }}>→</span>
+                  <span className="adm-action-card__arrow" style={{ color: action.color }}>
+                    →
+                  </span>
                 </Link>
               )
             )}
           </div>
         </section>
 
-        {/* ── Usage Analytics ─────────────── */}
         <section className="adm-section">
           <div className="adm-section__header">
-            <h2 className="adm-section__title">📊 Usage Analytics</h2>
+            <h2 className="adm-section__title">Usage Analytics</h2>
           </div>
 
           <div className="adm-analytics-grid">
             <div className="adm-analytics-card">
               <div className="adm-analytics-card__header">
                 <h3 className="adm-analytics-card__title">Top Resources</h3>
-                <p className="adm-analytics-card__sub">By highest capacity (ACTIVE only)</p>
+                <p className="adm-analytics-card__sub">By highest capacity among active resources</p>
               </div>
 
               {loading && (
                 <div className="skeleton-list">
-                  {[1, 2, 3].map((i) => <div key={i} className="skeleton-item" />)}
+                  {[1, 2, 3].map((item) => (
+                    <div key={item} className="skeleton-item" />
+                  ))}
                 </div>
               )}
 
@@ -222,20 +233,20 @@ export default function AdminDashboard() {
                 <div className="empty-state empty-state--compact">
                   <span className="empty-state__icon">🏫</span>
                   <h3>No resources yet</h3>
-                  <p>Add resources to see top capacity items.</p>
+                  <p>Add resources to see the most capable spaces.</p>
                 </div>
               )}
 
               {!loading && topResources.length > 0 && (
                 <div className="adm-analytics-list">
-                  {topResources.map((r, idx) => (
-                    <div key={r.id || `${r.name}-${idx}`} className="adm-analytics-row">
-                      <span className="adm-analytics-rank">{idx + 1}</span>
+                  {topResources.map((resource, index) => (
+                    <div key={resource.id || `${resource.name}-${index}`} className="adm-analytics-row">
+                      <span className="adm-analytics-rank">{index + 1}</span>
                       <div className="adm-analytics-main">
-                        <p className="adm-analytics-title">{r.name || 'Unnamed resource'}</p>
-                        <p className="adm-analytics-sub">{r.location || 'No location'}</p>
+                        <p className="adm-analytics-title">{resource.name || 'Unnamed resource'}</p>
+                        <p className="adm-analytics-sub">{resource.location || 'No location'}</p>
                       </div>
-                      <span className="adm-analytics-metric">{r.capacity ?? 0}</span>
+                      <span className="adm-analytics-metric">{resource.capacity ?? 0}</span>
                     </div>
                   ))}
                 </div>
@@ -245,12 +256,14 @@ export default function AdminDashboard() {
             <div className="adm-analytics-card">
               <div className="adm-analytics-card__header">
                 <h3 className="adm-analytics-card__title">Peak Booking Hours</h3>
-                <p className="adm-analytics-card__sub">From availability windows (proxy for booking demand)</p>
+                <p className="adm-analytics-card__sub">Based on configured availability windows</p>
               </div>
 
               {loading && (
                 <div className="skeleton-list">
-                  {[1, 2, 3].map((i) => <div key={i} className="skeleton-item" />)}
+                  {[1, 2, 3].map((item) => (
+                    <div key={item} className="skeleton-item" />
+                  ))}
                 </div>
               )}
 
@@ -258,19 +271,19 @@ export default function AdminDashboard() {
                 <div className="empty-state empty-state--compact">
                   <span className="empty-state__icon">🕒</span>
                   <h3>No availability data</h3>
-                  <p>Add availability windows to resources to see peak hours.</p>
+                  <p>Add availability windows to resources to surface peak hours.</p>
                 </div>
               )}
 
               {!loading && peakHours.length > 0 && (
                 <div className="adm-analytics-list">
-                  {peakHours.map((h) => (
-                    <div key={h.hour} className="adm-analytics-row">
+                  {peakHours.map((hour) => (
+                    <div key={hour.hour} className="adm-analytics-row">
                       <div className="adm-analytics-main">
-                        <p className="adm-analytics-title">{formatHourRange(h.hour)}</p>
+                        <p className="adm-analytics-title">{formatHourRange(hour.hour)}</p>
                         <p className="adm-analytics-sub">Resources available</p>
                       </div>
-                      <span className="adm-analytics-metric">{h.resourceCount}</span>
+                      <span className="adm-analytics-metric">{hour.resourceCount}</span>
                     </div>
                   ))}
                 </div>
@@ -279,10 +292,9 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        {/* ── Recent Activity ─────────────── */}
         <section className="adm-section">
           <div className="adm-section__header">
-            <h2 className="adm-section__title">🕐 Recent Activity</h2>
+            <h2 className="adm-section__title">Recent Activity</h2>
             <Link to="/admin/notifications" className="adm-section__see-all" id="see-all-notifs">
               View all →
             </Link>
@@ -290,7 +302,9 @@ export default function AdminDashboard() {
 
           {loading && (
             <div className="skeleton-list">
-              {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton-item" />)}
+              {[1, 2, 3, 4].map((item) => (
+                <div key={item} className="skeleton-item" />
+              ))}
             </div>
           )}
 
@@ -298,48 +312,40 @@ export default function AdminDashboard() {
             <div className="empty-state">
               <span className="empty-state__icon">🔕</span>
               <h3>No notifications yet</h3>
-              <p>Nothing to show — campus is quiet!</p>
+              <p>Nothing to show right now.</p>
             </div>
           )}
 
           {!loading && recentNotifs.length > 0 && (
             <div className="adm-activity-list">
-              {recentNotifs.map((n) => {
-                const color = TYPE_COLOR[n.type] || TYPE_COLOR.SYSTEM;
+              {recentNotifs.map((notification) => {
+                const color = TYPE_COLOR[notification.type] || TYPE_COLOR.SYSTEM;
+
                 return (
                   <div
-                    key={n.id}
-                    id={`activity-${n.id}`}
-                    className={`adm-activity-row ${!n.isRead ? 'adm-activity-row--unread' : ''}`}
+                    key={notification.id}
+                    id={`activity-${notification.id}`}
+                    className={`adm-activity-row ${!notification.isRead ? 'adm-activity-row--unread' : ''}`}
                   >
-                    {/* Icon */}
-                    <span
-                      className="adm-activity-row__icon"
-                      style={{ background: color + '1a', color }}
-                    >
-                      {TYPE_ICON[n.type] || '🔔'}
+                    <span className="adm-activity-row__icon" style={{ background: `${color}1a`, color }}>
+                      {TYPE_ICON[notification.type] || '🔔'}
                     </span>
 
-                    {/* Body */}
                     <div className="adm-activity-row__body">
-                      <p className="adm-activity-row__title">{n.title}</p>
-                      <p className="adm-activity-row__msg">{n.message}</p>
+                      <p className="adm-activity-row__title">{notification.title}</p>
+                      <p className="adm-activity-row__msg">{notification.message}</p>
                     </div>
 
-                    {/* Meta */}
                     <div className="adm-activity-row__meta">
-                      <span
-                        className="adm-activity-row__badge"
-                        style={{ background: color + '1a', color }}
-                      >
-                        {n.type}
+                      <span className="adm-activity-row__badge" style={{ background: `${color}1a`, color }}>
+                        {notification.type}
                       </span>
                       <span className="adm-activity-row__time">
-                        {formatDistanceToNow(n.createdAt)}
+                        {formatDistanceToNow(notification.createdAt)}
                       </span>
                     </div>
 
-                    {!n.isRead && <span className="adm-unread-dot" title="Unread" />}
+                    {!notification.isRead && <span className="adm-unread-dot" title="Unread" />}
                   </div>
                 );
               })}
@@ -347,10 +353,7 @@ export default function AdminDashboard() {
           )}
         </section>
 
-        {/* Footer */}
-        <footer className="adm-footer">
-          Smart Campus Admin Panel &nbsp;·&nbsp; Role: ADMIN &nbsp;·&nbsp; Auth: OAuth 2.0
-        </footer>
+        <footer className="adm-footer">Smart Campus Admin Panel · Role: ADMIN · Auth: OAuth 2.0</footer>
       </main>
     </div>
   );

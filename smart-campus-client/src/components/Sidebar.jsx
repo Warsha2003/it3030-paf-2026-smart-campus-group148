@@ -1,16 +1,3 @@
-/**
- * Sidebar.jsx
- * Collapsible left-hand navigation for admin panel pages.
- *
- * Features:
- *   - Active route highlighting via react-router's useLocation
- *   - Collapse / expand button (icon-only when collapsed)
- *   - User profile card at the bottom
- *   - Responsive: auto-collapses to icon-only on small screens
- *
- * Member 4 – Admin Sidebar
- */
-
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -18,11 +5,12 @@ import { useAuth } from '../hooks/useAuth';
 const ROLE_COLORS = { ADMIN: '#ef4444', TECHNICIAN: '#f59e0b', USER: '#10b981' };
 
 const NAV_ITEMS = [
-  { icon: '📊', label: 'Dashboard',          path: '/admin/dashboard' },
-  { icon: '👥', label: 'User Management',    path: '/admin/users'     },
-  { icon: '🏢', label: 'Resources',          path: '/admin/resources' },
-  { icon: '🔔', label: 'Notifications',      path: '/admin/notifications' },
-  { icon: '🏠', label: 'Back to Home',       path: '/dashboard',  divider: true },
+  { icon: '📊', label: 'Dashboard', path: '/admin/dashboard' },
+  { icon: '👥', label: 'User Management', path: '/admin/users' },
+  { icon: '🏢', label: 'Resources', path: '/admin/resources' },
+  { icon: '🗓️', label: 'Bookings', path: '/admin/bookings' },
+  { icon: '🔔', label: 'Notifications', path: '/admin/notifications' },
+  { icon: '🏠', label: 'Back to Home', path: '/dashboard', divider: true },
 ];
 
 export default function Sidebar() {
@@ -34,14 +22,12 @@ export default function Sidebar() {
 
   return (
     <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
-
-      {/* ── Brand header ──────────────────── */}
       <div className="sidebar__brand">
         <span className="sidebar__brand-icon">🏛️</span>
         {!collapsed && <span className="sidebar__brand-name">Smart Campus</span>}
         <button
           className="sidebar__toggle"
-          onClick={() => setCollapsed((c) => !c)}
+          onClick={() => setCollapsed((current) => !current)}
           title={collapsed ? 'Expand' : 'Collapse'}
           aria-label="Toggle sidebar"
         >
@@ -49,12 +35,8 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* ── Admin label ───────────────────── */}
-      {!collapsed && (
-        <p className="sidebar__section-label">ADMIN PANEL</p>
-      )}
+      {!collapsed && <p className="sidebar__section-label">ADMIN PANEL</p>}
 
-      {/* ── Navigation links ──────────────── */}
       <nav className="sidebar__nav" aria-label="Admin navigation">
         {NAV_ITEMS.map((item) => (
           <div key={item.path}>
@@ -73,7 +55,6 @@ export default function Sidebar() {
 
       <div style={{ flex: 1 }} />
 
-      {/* ── User card ─────────────────────── */}
       <div className="sidebar__user">
         <img
           src={
@@ -82,9 +63,8 @@ export default function Sidebar() {
           }
           alt={user?.name || 'User Avatar'}
           className="sidebar__user-avatar"
-          onError={(e) => {
-            // Fallback if ui-avatars fails
-            e.target.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect fill='%236366f1' width='40' height='40'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='Arial' font-size='16' fill='%23fff'%3E${(user?.name || 'U').charAt(0).toUpperCase()}%3C/text%3E%3C/svg%3E`;
+          onError={(event) => {
+            event.target.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect fill='%236366f1' width='40' height='40'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='Arial' font-size='16' fill='%23fff'%3E${(user?.name || 'U').charAt(0).toUpperCase()}%3C/text%3E%3C/svg%3E`;
           }}
         />
         {!collapsed && (
@@ -92,10 +72,7 @@ export default function Sidebar() {
             <p className="sidebar__user-name" title={user?.name}>
               {user?.name?.split(' ')[0]}
             </p>
-            <span
-              className="sidebar__role-badge"
-              style={{ background: ROLE_COLORS[user?.role] }}
-            >
+            <span className="sidebar__role-badge" style={{ background: ROLE_COLORS[user?.role] }}>
               {user?.role}
             </span>
           </div>

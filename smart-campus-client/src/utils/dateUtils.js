@@ -18,6 +18,32 @@ export function formatDistanceToNow(isoString) {
 export function formatDate(isoString) {
   if (!isoString) return '';
   return new Date(isoString).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   });
+}
+
+export function formatTime(timeString) {
+  if (!timeString) return '';
+
+  const [hours = '00', minutes = '00'] = String(timeString).split(':');
+  const date = new Date();
+  date.setHours(Number(hours), Number(minutes), 0, 0);
+
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+export function formatSchedule(dateString, startTime, endTime) {
+  if (!dateString) return '';
+
+  const dateLabel = formatDate(dateString);
+  const startLabel = formatTime(startTime);
+  const endLabel = formatTime(endTime);
+
+  if (!startLabel || !endLabel) return dateLabel;
+  return `${dateLabel} | ${startLabel} - ${endLabel}`;
 }

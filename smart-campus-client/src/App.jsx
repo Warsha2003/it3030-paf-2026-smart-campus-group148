@@ -27,8 +27,10 @@ import RoleProtectedRoute     from './components/RoleProtectedRoute';
 // ── Pages ─────────────────────────────────────────────────
 import LoginPage              from './pages/LoginPage';
 import DashboardPage          from './pages/DashboardPage';
+import BookingsPage           from './pages/BookingsPage';
 import NotificationPage       from './pages/NotificationPage';
 import AdminDashboard         from './pages/AdminDashboard';
+import AdminBookingsPage      from './pages/AdminBookingsPage';
 import AdminUsersPage         from './pages/AdminUsersPage';
 import AdminNotificationsPage from './pages/AdminNotificationsPage';
 import AdminResourcesPage    from './pages/AdminResourcesPage';
@@ -104,6 +106,10 @@ function App() {
               element={<AdminRoute><AdminUsersPage /></AdminRoute>}
             />
             <Route
+              path="/admin/bookings"
+              element={<AdminRoute><AdminBookingsPage /></AdminRoute>}
+            />
+            <Route
               path="/admin/notifications"
               element={<AdminRoute><AdminNotificationsPage /></AdminRoute>}
             />
@@ -118,6 +124,10 @@ function App() {
             <Route
               path="/dashboard"
               element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/bookings"
+              element={<ProtectedRoute><BookingsPage /></ProtectedRoute>}
             />
             <Route
               path="/notifications"

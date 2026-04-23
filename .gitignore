@@ -1,48 +1,46 @@
-# Compiled class file
+# Java
 *.class
-
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
 *.jar
 *.war
 *.nar
 *.ear
+*.log
+*.ctxt
+.mtj.tmp/
+hs_err_pid*
+replay_pid*
 *.zip
 *.tar.gz
 *.rar
 
-# virtual machine crash logs
-hs_err_pid*
-replay_pid*
+# Maven / Spring Boot
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
 
 # Frontend
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
 smart-campus-client/node_modules/
 smart-campus-client/dist/
 frontend/.vite/
 
 # Backend
 backend/node_modules/
-backend/target/
 
-# Sensitive files - never commit these
+# Sensitive files
 backend/src/main/resources/application.properties
 **/application.properties
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE files
+# IDE
 .idea/
 .vscode/
+*.iws
 *.iml
+*.ipr
+
+# OS
+.DS_Store
+Thumbs.db
