@@ -57,7 +57,7 @@ const QUICK_ACTIONS = [
   },
   {
     id: 'qa-tickets',
-    to: '/tickets',
+    to: '/admin/tickets',
     icon: 'TK',
     label: 'Support Tickets',
     desc: 'Review maintenance and incident tickets',

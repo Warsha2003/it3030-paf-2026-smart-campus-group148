@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Sidebar from '../components/Sidebar';
 import StatCard from '../components/StatCard';
@@ -16,11 +17,33 @@ import {
 } from '../utils/bookingUtils';
 import { formatDate, formatDistanceToNow, formatSchedule } from '../utils/dateUtils';
 
+const matchesSearch = (booking, searchTerm) => {
+  if (!searchTerm) {
+    return true;
+  }
+
+  const query = searchTerm.toLowerCase();
+  const haystack = [
+    booking.userName,
+    booking.userEmail,
+    booking.resourceName,
+    booking.resourceLocation,
+    booking.purpose,
+    booking.status,
+    getResourceTypeLabel(booking.resourceType),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return haystack.includes(query);
+};
+
 export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
-  const [bookingDateFilter, setBookingDateFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [actionBookingId, setActionBookingId] = useState('');
 
   const fetchBookings = useCallback(async (filters = {}) => {
@@ -38,34 +61,43 @@ export default function AdminBookingsPage() {
   useEffect(() => {
     fetchBookings({
       status: statusFilter || undefined,
-      bookingDate: bookingDateFilter || undefined,
     });
-  }, [statusFilter, bookingDateFilter, fetchBookings]);
+  }, [statusFilter, fetchBookings]);
+
+  const filteredBookings = useMemo(
+    () => bookings.filter((booking) => matchesSearch(booking, search.trim())),
+    [bookings, search]
+  );
 
   const stats = useMemo(() => {
-    const pending = bookings.filter((booking) => booking.status === 'PENDING').length;
-    const approved = bookings.filter((booking) => booking.status === 'APPROVED').length;
-    const rejected = bookings.filter((booking) => booking.status === 'REJECTED').length;
+    const pending = filteredBookings.filter((booking) => booking.status === 'PENDING').length;
+    const approved = filteredBookings.filter((booking) => booking.status === 'APPROVED').length;
+    const rejected = filteredBookings.filter((booking) => booking.status === 'REJECTED').length;
 
     return {
-      total: bookings.length,
+      total: filteredBookings.length,
       pending,
       approved,
       rejected,
     };
-  }, [bookings]);
+  }, [filteredBookings]);
+
+  const refreshBookings = useCallback(async () => {
+    await fetchBookings({
+      status: statusFilter || undefined,
+    });
+  }, [fetchBookings, statusFilter]);
 
   const handleApprove = async (bookingId) => {
-    if (!window.confirm('Approve this booking request?')) return;
+    if (!window.confirm('Approve this booking request?')) {
+      return;
+    }
 
     setActionBookingId(bookingId);
     try {
       const response = await reviewBooking(bookingId, { status: 'APPROVED', reason: '' });
       toast.success(response.message || 'Booking approved.');
-      await fetchBookings({
-        status: statusFilter || undefined,
-        bookingDate: bookingDateFilter || undefined,
-      });
+      await refreshBookings();
     } catch (error) {
       toast.error(extractApiErrorMessage(error, 'Failed to approve booking.'));
     } finally {
@@ -75,7 +107,9 @@ export default function AdminBookingsPage() {
 
   const handleReject = async (bookingId) => {
     const reason = window.prompt('Add a rejection reason:');
-    if (reason === null) return;
+    if (reason === null) {
+      return;
+    }
     if (!reason.trim()) {
       toast.error('A rejection reason is required.');
       return;
@@ -85,10 +119,7 @@ export default function AdminBookingsPage() {
     try {
       const response = await reviewBooking(bookingId, { status: 'REJECTED', reason: reason.trim() });
       toast.success(response.message || 'Booking rejected.');
-      await fetchBookings({
-        status: statusFilter || undefined,
-        bookingDate: bookingDateFilter || undefined,
-      });
+      await refreshBookings();
     } catch (error) {
       toast.error(extractApiErrorMessage(error, 'Failed to reject booking.'));
     } finally {
@@ -98,16 +129,15 @@ export default function AdminBookingsPage() {
 
   const handleCancel = async (bookingId) => {
     const reason = window.prompt('Optional cancellation reason:');
-    if (reason === null) return;
+    if (reason === null) {
+      return;
+    }
 
     setActionBookingId(bookingId);
     try {
       const response = await cancelBooking(bookingId, { reason: reason.trim() });
       toast.success(response.message || 'Booking cancelled.');
-      await fetchBookings({
-        status: statusFilter || undefined,
-        bookingDate: bookingDateFilter || undefined,
-      });
+      await refreshBookings();
     } catch (error) {
       toast.error(extractApiErrorMessage(error, 'Failed to cancel booking.'));
     } finally {
@@ -116,16 +146,15 @@ export default function AdminBookingsPage() {
   };
 
   const handleDelete = async (bookingId) => {
-    if (!window.confirm('Delete this booking record?')) return;
+    if (!window.confirm('Delete this booking record?')) {
+      return;
+    }
 
     setActionBookingId(bookingId);
     try {
       const response = await deleteBooking(bookingId);
       toast.success(response.message || 'Booking deleted.');
-      await fetchBookings({
-        status: statusFilter || undefined,
-        bookingDate: bookingDateFilter || undefined,
-      });
+      await refreshBookings();
     } catch (error) {
       toast.error(extractApiErrorMessage(error, 'Failed to delete booking.'));
     } finally {
@@ -142,10 +171,14 @@ export default function AdminBookingsPage() {
           <div>
             <h1 className="adm-page-header__title">Booking Management</h1>
             <p className="adm-page-header__sub">
-              Review pending requests, monitor approved schedules, and resolve conflicts quickly.
+              Review pending requests, monitor approved schedules, and create your own booking
+              requests when needed.
             </p>
           </div>
           <div className="adm-page-header__actions">
+            <Link to="/bookings" className="btn btn--primary">
+              Create My Booking
+            </Link>
             <select
               className="adm-select"
               value={statusFilter}
@@ -157,29 +190,36 @@ export default function AdminBookingsPage() {
                 </option>
               ))}
             </select>
-            <input
-              className="adm-date-input"
-              type="date"
-              value={bookingDateFilter}
-              onChange={(event) => setBookingDateFilter(event.target.value)}
-            />
-            <button
-              type="button"
-              className="btn btn--ghost"
-              onClick={() =>
-                fetchBookings({
-                  status: statusFilter || undefined,
-                  bookingDate: bookingDateFilter || undefined,
-                })
-              }
-            >
+            <button type="button" className="btn btn--ghost" onClick={refreshBookings}>
               Refresh
             </button>
           </div>
         </header>
 
+        <div className="adm-search-bar">
+          <span className="adm-search-bar__icon">Search</span>
+          <input
+            id="booking-search"
+            type="text"
+            placeholder="Search by requester, resource, purpose, email, or status..."
+            className="adm-search-bar__input"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          {search && (
+            <button
+              type="button"
+              className="adm-search-bar__clear"
+              onClick={() => setSearch('')}
+              aria-label="Clear booking search"
+            >
+              x
+            </button>
+          )}
+        </div>
+
         <section className="adm-stats">
-          <StatCard icon="B" label="All Requests" value={stats.total} color="#4f46e5" loading={loading} />
+          <StatCard icon="B" label="Visible Requests" value={stats.total} color="#4f46e5" loading={loading} />
           <StatCard icon="P" label="Pending Review" value={stats.pending} color="#f59e0b" loading={loading} />
           <StatCard icon="A" label="Approved" value={stats.approved} color="#10b981" loading={loading} />
           <StatCard icon="R" label="Rejected" value={stats.rejected} color="#ef4444" loading={loading} />
@@ -187,7 +227,8 @@ export default function AdminBookingsPage() {
 
         {!loading && (
           <p className="adm-results-count">
-            Showing <strong>{bookings.length}</strong> booking request{bookings.length !== 1 ? 's' : ''}
+            Showing <strong>{filteredBookings.length}</strong> of {bookings.length} booking request
+            {bookings.length !== 1 ? 's' : ''}
           </p>
         )}
 
@@ -197,10 +238,14 @@ export default function AdminBookingsPage() {
               <div key={item} className="skeleton-item" />
             ))}
           </div>
-        ) : bookings.length === 0 ? (
+        ) : filteredBookings.length === 0 ? (
           <div className="empty-state">
             <h3>No booking requests found</h3>
-            <p>Try another status or date filter.</p>
+            <p>
+              {search.trim()
+                ? 'Try a different search term.'
+                : 'Try another status filter or create a new booking request.'}
+            </p>
           </div>
         ) : (
           <div className="adm-table-wrapper">
@@ -217,7 +262,7 @@ export default function AdminBookingsPage() {
                 </tr>
               </thead>
               <tbody>
-                {bookings.map((booking) => {
+                {filteredBookings.map((booking) => {
                   const busy = actionBookingId === booking.id;
                   const isPending = booking.status === 'PENDING';
                   const isApproved = booking.status === 'APPROVED';
@@ -233,7 +278,7 @@ export default function AdminBookingsPage() {
                       <td>
                         <p className="adm-table__cell-title">{booking.resourceName}</p>
                         <p className="adm-table__cell-msg">
-                          {getResourceTypeLabel(booking.resourceType)} · {booking.resourceLocation}
+                          {getResourceTypeLabel(booking.resourceType)} | {booking.resourceLocation}
                         </p>
                       </td>
                       <td>
@@ -335,7 +380,7 @@ export default function AdminBookingsPage() {
           </div>
         )}
 
-        <footer className="adm-footer">Smart Campus Admin Panel · Booking Management</footer>
+        <footer className="adm-footer">Smart Campus Admin Panel | Booking Management</footer>
       </main>
     </div>
   );

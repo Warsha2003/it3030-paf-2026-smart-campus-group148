@@ -16,7 +16,7 @@ const NAV_ITEMS = [
   { icon: 'UM', label: 'User Management', path: '/admin/users' },
   { icon: 'RS', label: 'Resources', path: '/admin/resources' },
   { icon: 'BK', label: 'Bookings', path: '/admin/bookings' },
-  { icon: 'TK', label: 'Support Tickets', path: '/tickets' },
+  { icon: 'TK', label: 'Support Tickets', path: '/admin/tickets' },
   { icon: 'NT', label: 'Notifications', path: '/admin/notifications' },
   { icon: 'HM', label: 'Back to Home', path: '/dashboard', divider: true },
 ];

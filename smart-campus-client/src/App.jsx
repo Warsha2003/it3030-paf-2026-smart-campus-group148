@@ -14,6 +14,7 @@ import NotificationPage from './pages/NotificationPage';
 import TicketsPage from './pages/TicketsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminBookingsPage from './pages/AdminBookingsPage';
+import AdminTicketsPage from './pages/AdminTicketsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminNotificationsPage from './pages/AdminNotificationsPage';
 import AdminResourcesPage from './pages/AdminResourcesPage';
@@ -90,6 +91,14 @@ function App() {
               element={
                 <AdminRoute>
                   <AdminBookingsPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/tickets"
+              element={
+                <AdminRoute>
+                  <AdminTicketsPage />
                 </AdminRoute>
               }
             />
