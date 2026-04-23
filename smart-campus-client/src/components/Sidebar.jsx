@@ -2,15 +2,23 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
-const ROLE_COLORS = { ADMIN: '#ef4444', TECHNICIAN: '#f59e0b', USER: '#10b981' };
+const ROLE_COLORS = {
+  ADMIN: '#ef4444',
+  ROLE_ADMIN: '#ef4444',
+  TECHNICIAN: '#f59e0b',
+  ROLE_TECHNICIAN: '#f59e0b',
+  USER: '#10b981',
+  ROLE_USER: '#10b981',
+};
 
 const NAV_ITEMS = [
-  { icon: '📊', label: 'Dashboard', path: '/admin/dashboard' },
-  { icon: '👥', label: 'User Management', path: '/admin/users' },
-  { icon: '🏢', label: 'Resources', path: '/admin/resources' },
-  { icon: '🗓️', label: 'Bookings', path: '/admin/bookings' },
-  { icon: '🔔', label: 'Notifications', path: '/admin/notifications' },
-  { icon: '🏠', label: 'Back to Home', path: '/dashboard', divider: true },
+  { icon: 'DB', label: 'Dashboard', path: '/admin/dashboard' },
+  { icon: 'UM', label: 'User Management', path: '/admin/users' },
+  { icon: 'RS', label: 'Resources', path: '/admin/resources' },
+  { icon: 'BK', label: 'Bookings', path: '/admin/bookings' },
+  { icon: 'TK', label: 'Support Tickets', path: '/tickets' },
+  { icon: 'NT', label: 'Notifications', path: '/admin/notifications' },
+  { icon: 'HM', label: 'Back to Home', path: '/dashboard', divider: true },
 ];
 
 export default function Sidebar() {
@@ -19,11 +27,12 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
 
   const isActive = (path) => location.pathname === path;
+  const firstName = user?.name?.split(' ')[0] || 'User';
 
   return (
     <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
       <div className="sidebar__brand">
-        <span className="sidebar__brand-icon">🏛️</span>
+        <span className="sidebar__brand-icon">SC</span>
         {!collapsed && <span className="sidebar__brand-name">Smart Campus</span>}
         <button
           className="sidebar__toggle"
@@ -31,7 +40,7 @@ export default function Sidebar() {
           title={collapsed ? 'Expand' : 'Collapse'}
           aria-label="Toggle sidebar"
         >
-          {collapsed ? '›' : '‹'}
+          {collapsed ? '>' : '<'}
         </button>
       </div>
 
@@ -64,15 +73,21 @@ export default function Sidebar() {
           alt={user?.name || 'User Avatar'}
           className="sidebar__user-avatar"
           onError={(event) => {
-            event.target.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect fill='%236366f1' width='40' height='40'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='Arial' font-size='16' fill='%23fff'%3E${(user?.name || 'U').charAt(0).toUpperCase()}%3C/text%3E%3C/svg%3E`;
+            event.target.src =
+              "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect fill='%236366f1' width='40' height='40'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='Arial' font-size='16' fill='%23fff'%3E" +
+              firstName.charAt(0).toUpperCase() +
+              '%3C/text%3E%3C/svg%3E';
           }}
         />
         {!collapsed && (
           <div className="sidebar__user-info">
             <p className="sidebar__user-name" title={user?.name}>
-              {user?.name?.split(' ')[0]}
+              {firstName}
             </p>
-            <span className="sidebar__role-badge" style={{ background: ROLE_COLORS[user?.role] }}>
+            <span
+              className="sidebar__role-badge"
+              style={{ background: ROLE_COLORS[user?.role] || '#64748b' }}
+            >
               {user?.role}
             </span>
           </div>
@@ -84,7 +99,7 @@ export default function Sidebar() {
             title="Logout"
             aria-label="Logout"
           >
-            ↪
+            Out
           </button>
         )}
       </div>

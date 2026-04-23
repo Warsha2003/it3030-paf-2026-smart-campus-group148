@@ -10,26 +10,38 @@ import {
   adminGetUnreadCount,
 } from '../services/adminApi';
 import { getAllBookings } from '../services/bookingApi';
+import ticketApi from '../services/ticketApi';
 import { formatDistanceToNow } from '../utils/dateUtils';
 
-const TYPE_ICON = { BOOKING: '🗓️', TICKET: '🎫', COMMENT: '💬', SYSTEM: '🔔' };
-const TYPE_COLOR = { BOOKING: '#6366f1', TICKET: '#f59e0b', COMMENT: '#10b981', SYSTEM: '#64748b' };
+const TYPE_ICON = {
+  BOOKING: 'BK',
+  TICKET: 'TK',
+  COMMENT: 'CM',
+  SYSTEM: 'NT',
+};
+
+const TYPE_COLOR = {
+  BOOKING: '#6366f1',
+  TICKET: '#f59e0b',
+  COMMENT: '#10b981',
+  SYSTEM: '#64748b',
+};
 
 const QUICK_ACTIONS = [
   {
     id: 'qa-users',
     to: '/admin/users',
-    icon: '👥',
+    icon: 'UM',
     label: 'User Management',
-    desc: 'View users, assign & update roles',
+    desc: 'View users, assign and update roles',
     color: '#6366f1',
     bg: '#eef2ff',
   },
   {
     id: 'qa-resources',
     to: '/admin/resources',
-    icon: '🏢',
-    label: 'Facilities & Assets',
+    icon: 'RS',
+    label: 'Facilities and Assets',
     desc: 'Manage the campus resource catalogue',
     color: '#8b5cf6',
     bg: '#f5f3ff',
@@ -37,30 +49,29 @@ const QUICK_ACTIONS = [
   {
     id: 'qa-bookings',
     to: '/admin/bookings',
-    icon: '🗓️',
+    icon: 'BK',
     label: 'Booking Management',
     desc: 'Review and manage booking requests',
     color: '#0ea5e9',
     bg: '#e0f2fe',
   },
   {
+    id: 'qa-tickets',
+    to: '/tickets',
+    icon: 'TK',
+    label: 'Support Tickets',
+    desc: 'Review maintenance and incident tickets',
+    color: '#10b981',
+    bg: '#f0fdf4',
+  },
+  {
     id: 'qa-notifications',
     to: '/admin/notifications',
-    icon: '🔔',
+    icon: 'NT',
     label: 'Notifications',
     desc: 'Monitor all campus notifications',
     color: '#f59e0b',
     bg: '#fffbeb',
-  },
-  {
-    id: 'qa-tickets',
-    to: '#',
-    icon: '🎫',
-    label: 'Support Tickets',
-    desc: 'Coming soon',
-    color: '#10b981',
-    bg: '#f0fdf4',
-    disabled: true,
   },
 ];
 
@@ -70,29 +81,50 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [tickets, setTickets] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [resourceAnalytics, setResourceAnalytics] = useState({ topResources: [], peakBookingHours: [] });
+  const [resourceAnalytics, setResourceAnalytics] = useState({
+    topResources: [],
+    peakBookingHours: [],
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [usersResponse, notificationsResponse, unreadResponse, analyticsResponse, bookingsResponse] =
-          await Promise.all([
-            adminGetAllUsers(),
-            adminGetAllNotifications(),
-            adminGetUnreadCount(),
-            adminGetResourceAnalytics(),
-            getAllBookings(),
-          ]);
+        const [
+          usersResponse,
+          notificationsResponse,
+          unreadResponse,
+          analyticsResponse,
+          bookingsResponse,
+          ticketsResponse,
+        ] = await Promise.all([
+          adminGetAllUsers(),
+          adminGetAllNotifications(),
+          adminGetUnreadCount(),
+          adminGetResourceAnalytics(),
+          getAllBookings(),
+          ticketApi.getAllTickets(),
+        ]);
 
-        if (usersResponse.success) setUsers(usersResponse.data || []);
-        if (notificationsResponse.success) setNotifications(notificationsResponse.data || []);
-        if (unreadResponse.success) setUnreadCount(unreadResponse.data?.count ?? 0);
+        if (usersResponse.success) {
+          setUsers(usersResponse.data || []);
+        }
+        if (notificationsResponse.success) {
+          setNotifications(notificationsResponse.data || []);
+        }
+        if (unreadResponse.success) {
+          setUnreadCount(unreadResponse.data?.count ?? 0);
+        }
         if (analyticsResponse.success) {
           setResourceAnalytics(analyticsResponse.data || { topResources: [], peakBookingHours: [] });
         }
-        if (bookingsResponse.success) setBookings(bookingsResponse.data || []);
+        if (bookingsResponse.success) {
+          setBookings(bookingsResponse.data || []);
+        }
+
+        setTickets(Array.isArray(ticketsResponse.data) ? ticketsResponse.data : []);
       } catch (error) {
         console.error('Admin dashboard load error:', error);
       } finally {
@@ -109,6 +141,7 @@ export default function AdminDashboard() {
 
   const topResources = resourceAnalytics?.topResources || [];
   const peakHours = resourceAnalytics?.peakBookingHours || [];
+  const firstName = user?.name?.split(' ')[0] || 'Admin';
 
   const formatHourRange = (hour) => {
     const start = String(hour).padStart(2, '0');
@@ -125,7 +158,7 @@ export default function AdminDashboard() {
           <div className="adm-banner__text">
             <h1 className="adm-banner__title">Admin Dashboard</h1>
             <p className="adm-banner__sub">
-              Welcome back, <strong>{user?.name?.split(' ')[0]}</strong> - here&apos;s your campus overview.
+              Welcome back, <strong>{firstName}</strong> - here is your campus overview.
             </p>
           </div>
           <img
@@ -136,28 +169,32 @@ export default function AdminDashboard() {
             alt={user?.name || 'Admin Avatar'}
             className="adm-banner__avatar"
             onError={(event) => {
-              event.target.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect fill='%23ffffff' stroke='%234f46e5' stroke-width='2' width='80' height='80'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='Arial' font-size='32' fill='%234f46e5'%3E${(user?.name || 'A').charAt(0).toUpperCase()}%3C/text%3E%3C/svg%3E`;
+              event.target.src =
+                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect fill='%23ffffff' stroke='%234f46e5' stroke-width='2' width='80' height='80'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='Arial' font-size='32' fill='%234f46e5'%3E" +
+                firstName.charAt(0).toUpperCase() +
+                '%3C/text%3E%3C/svg%3E';
             }}
           />
         </header>
 
         <section className="adm-stats" aria-label="Overview statistics">
-          <StatCard icon="👥" label="Total Users" value={users.length} color="#6366f1" loading={loading} />
+          <StatCard icon="UM" label="Total Users" value={users.length} color="#6366f1" loading={loading} />
           <StatCard
-            icon="🔔"
+            icon="NT"
             label="Total Notifications"
             value={notifications.length}
             color="#f59e0b"
             loading={loading}
           />
           <StatCard
-            icon="📬"
+            icon="UR"
             label="Unread Notifications"
             value={unreadCount}
             color="#ef4444"
             loading={loading}
           />
-          <StatCard icon="🗓️" label="Room Bookings" value={bookings.length} color="#0ea5e9" loading={loading} />
+          <StatCard icon="BK" label="Room Bookings" value={bookings.length} color="#0ea5e9" loading={loading} />
+          <StatCard icon="TK" label="Support Tickets" value={tickets.length} color="#10b981" loading={loading} />
         </section>
 
         <section className="adm-section">
@@ -165,47 +202,28 @@ export default function AdminDashboard() {
             <h2 className="adm-section__title">Quick Actions</h2>
           </div>
           <div className="adm-actions-grid">
-            {QUICK_ACTIONS.map((action) =>
-              action.disabled ? (
-                <div
-                  key={action.id}
-                  className="adm-action-card adm-action-card--disabled"
-                  style={{ background: action.bg, borderColor: `${action.color}33` }}
-                >
-                  <span className="adm-action-card__icon" style={{ color: action.color }}>
-                    {action.icon}
-                  </span>
-                  <div>
-                    <p className="adm-action-card__label" style={{ color: action.color }}>
-                      {action.label}
-                    </p>
-                    <p className="adm-action-card__desc">{action.desc}</p>
-                  </div>
-                  <span className="adm-action-card__pill">Soon</span>
+            {QUICK_ACTIONS.map((action) => (
+              <Link
+                key={action.id}
+                id={action.id}
+                to={action.to}
+                className="adm-action-card"
+                style={{ background: action.bg, borderColor: `${action.color}33` }}
+              >
+                <span className="adm-action-card__icon" style={{ color: action.color }}>
+                  {action.icon}
+                </span>
+                <div>
+                  <p className="adm-action-card__label" style={{ color: action.color }}>
+                    {action.label}
+                  </p>
+                  <p className="adm-action-card__desc">{action.desc}</p>
                 </div>
-              ) : (
-                <Link
-                  key={action.id}
-                  id={action.id}
-                  to={action.to}
-                  className="adm-action-card"
-                  style={{ background: action.bg, borderColor: `${action.color}33` }}
-                >
-                  <span className="adm-action-card__icon" style={{ color: action.color }}>
-                    {action.icon}
-                  </span>
-                  <div>
-                    <p className="adm-action-card__label" style={{ color: action.color }}>
-                      {action.label}
-                    </p>
-                    <p className="adm-action-card__desc">{action.desc}</p>
-                  </div>
-                  <span className="adm-action-card__arrow" style={{ color: action.color }}>
-                    →
-                  </span>
-                </Link>
-              )
-            )}
+                <span className="adm-action-card__arrow" style={{ color: action.color }}>
+                  {'->'}
+                </span>
+              </Link>
+            ))}
           </div>
         </section>
 
@@ -231,7 +249,7 @@ export default function AdminDashboard() {
 
               {!loading && topResources.length === 0 && (
                 <div className="empty-state empty-state--compact">
-                  <span className="empty-state__icon">🏫</span>
+                  <span className="empty-state__icon">RS</span>
                   <h3>No resources yet</h3>
                   <p>Add resources to see the most capable spaces.</p>
                 </div>
@@ -269,7 +287,7 @@ export default function AdminDashboard() {
 
               {!loading && peakHours.length === 0 && (
                 <div className="empty-state empty-state--compact">
-                  <span className="empty-state__icon">🕒</span>
+                  <span className="empty-state__icon">TM</span>
                   <h3>No availability data</h3>
                   <p>Add availability windows to resources to surface peak hours.</p>
                 </div>
@@ -296,7 +314,7 @@ export default function AdminDashboard() {
           <div className="adm-section__header">
             <h2 className="adm-section__title">Recent Activity</h2>
             <Link to="/admin/notifications" className="adm-section__see-all" id="see-all-notifs">
-              View all →
+              View all {'->'}
             </Link>
           </div>
 
@@ -310,7 +328,7 @@ export default function AdminDashboard() {
 
           {!loading && recentNotifs.length === 0 && (
             <div className="empty-state">
-              <span className="empty-state__icon">🔕</span>
+              <span className="empty-state__icon">NT</span>
               <h3>No notifications yet</h3>
               <p>Nothing to show right now.</p>
             </div>
@@ -328,7 +346,7 @@ export default function AdminDashboard() {
                     className={`adm-activity-row ${!notification.isRead ? 'adm-activity-row--unread' : ''}`}
                   >
                     <span className="adm-activity-row__icon" style={{ background: `${color}1a`, color }}>
-                      {TYPE_ICON[notification.type] || '🔔'}
+                      {TYPE_ICON[notification.type] || 'NT'}
                     </span>
 
                     <div className="adm-activity-row__body">
@@ -353,7 +371,7 @@ export default function AdminDashboard() {
           )}
         </section>
 
-        <footer className="adm-footer">Smart Campus Admin Panel · Role: ADMIN · Auth: OAuth 2.0</footer>
+        <footer className="adm-footer">Smart Campus Admin Panel | Role: ADMIN | Auth: OAuth 2.0</footer>
       </main>
     </div>
   );
