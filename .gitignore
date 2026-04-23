@@ -23,8 +23,9 @@
 hs_err_pid*
 replay_pid*
 
-frontend/node_modules/
+smart-campus-client/node_modules/
 backend/node_modules/
 
 backend/target/
-frontend/dist/
+smart-campus-client/dist/
+smart-campus-client/.vite/deps
