@@ -17,6 +17,7 @@ import com.smartcampus.model.User;
 import com.smartcampus.repository.BookingRepository;
 import com.smartcampus.repository.ResourceRepository;
 import com.smartcampus.repository.UserRepository;
+import com.smartcampus.util.ResourceAvailabilityUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -54,7 +55,8 @@ public class BookingService {
         validateBookingDate(request.getBookingDate());
 
         Resource resource = getResource(request.getResourceId());
-        validateResourceAvailability(resource, request.getStartTime(), request.getEndTime(), request.getExpectedAttendees());
+        validateResourceAvailability(resource, request.getBookingDate(),
+                request.getStartTime(), request.getEndTime(), request.getExpectedAttendees());
         assertNoConflict(resource.getId(), request.getBookingDate(), request.getStartTime(), request.getEndTime(),
                 CREATE_BLOCKING_STATUSES, null);
 
@@ -109,7 +111,8 @@ public class BookingService {
         }
 
         Resource resource = getResource(request.getResourceId());
-        validateResourceAvailability(resource, request.getStartTime(), request.getEndTime(), request.getExpectedAttendees());
+        validateResourceAvailability(resource, request.getBookingDate(),
+                request.getStartTime(), request.getEndTime(), request.getExpectedAttendees());
         assertNoConflict(resource.getId(), request.getBookingDate(), request.getStartTime(), request.getEndTime(),
                 CREATE_BLOCKING_STATUSES, booking.getId());
 
@@ -143,7 +146,8 @@ public class BookingService {
 
         Resource resource = getResource(booking.getResourceId());
         if (request.getStatus() == BookingStatus.APPROVED) {
-            validateResourceAvailability(resource, booking.getStartTime(), booking.getEndTime(), booking.getExpectedAttendees());
+            validateResourceAvailability(resource, booking.getBookingDate(),
+                    booking.getStartTime(), booking.getEndTime(), booking.getExpectedAttendees());
             assertNoConflict(resource.getId(), booking.getBookingDate(), booking.getStartTime(), booking.getEndTime(),
                     APPROVAL_BLOCKING_STATUSES, booking.getId());
         }
@@ -230,16 +234,14 @@ public class BookingService {
         }
     }
 
-    private void validateResourceAvailability(Resource resource, LocalTime startTime, LocalTime endTime,
+    private void validateResourceAvailability(Resource resource, LocalDate bookingDate,
+                                              LocalTime startTime, LocalTime endTime,
                                               Integer expectedAttendees) {
         if (resource.getStatus() != ResourceStatus.ACTIVE) {
             throw new ConflictException("This resource is currently out of service.");
         }
-        if (resource.getAvailabilityStart() != null && startTime.isBefore(resource.getAvailabilityStart())) {
-            throw new BadRequestException("Booking start time is outside the resource availability window.");
-        }
-        if (resource.getAvailabilityEnd() != null && endTime.isAfter(resource.getAvailabilityEnd())) {
-            throw new BadRequestException("Booking end time is outside the resource availability window.");
+        if (!ResourceAvailabilityUtils.isWithinAvailability(resource, bookingDate, startTime, endTime)) {
+            throw new BadRequestException("The selected time is outside the resource availability window.");
         }
         if (expectedAttendees != null && resource.getCapacity() != null && expectedAttendees > resource.getCapacity()) {
             throw new BadRequestException("Expected attendees exceed the resource capacity.");

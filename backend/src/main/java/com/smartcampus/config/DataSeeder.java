@@ -114,17 +114,28 @@ public class DataSeeder {
     }
 
     private void seedResources(ResourceRepository resourceRepository) {
+        Instant now = Instant.now();
         List<Resource> resources = List.of(
                 new Resource(null, "Conference Room A", ResourceType.MEETING_ROOM, 10, "Block A",
-                        LocalTime.of(8, 0), LocalTime.of(18, 0), ResourceStatus.ACTIVE, Instant.now(), Instant.now()),
+                        "Collaborative meeting room for group work and staff sessions.",
+                        ResourceStatus.ACTIVE, List.of("08:00-18:00"),
+                        LocalTime.of(8, 0), LocalTime.of(18, 0), now, now),
                 new Resource(null, "Lecture Hall 1", ResourceType.LECTURE_HALL, 60, "Main Building",
-                        LocalTime.of(8, 0), LocalTime.of(18, 0), ResourceStatus.ACTIVE, Instant.now(), Instant.now()),
+                        "Tiered lecture hall suitable for classes and seminars.",
+                        ResourceStatus.ACTIVE, List.of("08:00-18:00"),
+                        LocalTime.of(8, 0), LocalTime.of(18, 0), now, now),
                 new Resource(null, "Lab Room 202", ResourceType.LAB, 25, "Engineering Wing",
-                        LocalTime.of(9, 0), LocalTime.of(17, 0), ResourceStatus.ACTIVE, Instant.now(), Instant.now()),
+                        "Computer lab with networking and hardware benches.",
+                        ResourceStatus.ACTIVE, List.of("09:00-17:00"),
+                        LocalTime.of(9, 0), LocalTime.of(17, 0), now, now),
                 new Resource(null, "Study Room 101", ResourceType.STUDY_ROOM, 4, "Library",
-                        LocalTime.of(8, 0), LocalTime.of(20, 0), ResourceStatus.ACTIVE, Instant.now(), Instant.now()),
+                        "Quiet study room for focused academic work.",
+                        ResourceStatus.ACTIVE, List.of("08:00-20:00"),
+                        LocalTime.of(8, 0), LocalTime.of(20, 0), now, now),
                 new Resource(null, "Projector PX-01", ResourceType.EQUIPMENT, 1, "Media Center",
-                        LocalTime.of(8, 0), LocalTime.of(17, 0), ResourceStatus.OUT_OF_SERVICE, Instant.now(), Instant.now())
+                        "Portable projector for classroom and event use.",
+                        ResourceStatus.OUT_OF_SERVICE, List.of("08:00-17:00"),
+                        LocalTime.of(8, 0), LocalTime.of(17, 0), now, now)
         );
 
         for (Resource resource : resources) {
@@ -146,6 +157,8 @@ public class DataSeeder {
     private boolean requiresResourceMigration(Resource existing, Resource expected) {
         return existing.getAvailabilityStart() == null
                 || existing.getAvailabilityEnd() == null
+                || existing.getAvailabilityWindows() == null
+                || existing.getAvailabilityWindows().isEmpty()
                 || existing.getType() != expected.getType()
                 || !java.util.Objects.equals(existing.getCapacity(), expected.getCapacity())
                 || !java.util.Objects.equals(existing.getLocation(), expected.getLocation())

@@ -23,6 +23,9 @@ export const RESOURCE_TYPE_META = {
   MEETING_ROOM: { label: 'Meeting Room' },
   EQUIPMENT: { label: 'Equipment' },
   STUDY_ROOM: { label: 'Study Room' },
+  PROJECTOR: { label: 'Projector' },
+  CAMERA: { label: 'Camera' },
+  OTHER: { label: 'Other' },
 };
 
 export const BOOKING_STATUS_OPTIONS = [
@@ -48,6 +51,9 @@ export const RESOURCE_TYPE_OPTIONS = [
   { value: 'MEETING_ROOM', label: 'Meeting Room' },
   { value: 'EQUIPMENT', label: 'Equipment' },
   { value: 'STUDY_ROOM', label: 'Study Room' },
+  { value: 'PROJECTOR', label: 'Projector' },
+  { value: 'CAMERA', label: 'Camera' },
+  { value: 'OTHER', label: 'Other' },
 ];
 
 export const RESOURCE_STATUS_OPTIONS = [
