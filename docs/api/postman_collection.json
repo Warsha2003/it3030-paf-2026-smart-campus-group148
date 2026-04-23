@@ -1,0 +1,45 @@
+{
+  "info": {
+    "name": "Smart Campus Operations Hub",
+    "_postman_id": "8b07de1a-5d34-4db9-b073-3f7c57cfd148",
+    "description": "Postman collection placeholder for the current booking module endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Home",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8080/home",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "home"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get All Bookings",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8080/api/bookings",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "bookings"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,31 +1,46 @@
-# Compiled class file
+# Java
 *.class
-
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
 *.jar
 *.war
 *.nar
 *.ear
+*.log
+*.ctxt
+.mtj.tmp/
+hs_err_pid*
+replay_pid*
 *.zip
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+# Maven / Spring Boot
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Frontend
 
 smart-campus-client/node_modules/
+smart-campus-client/dist/
+smart-campus-client/.vite/
+smart-campus-client/.vite/**
+frontend/.vite/
+
+# Backend
 backend/node_modules/
 
-backend/target/
-smart-campus-client/dist/
-smart-campus-client/.vite/deps
+# Sensitive files
+backend/src/main/resources/application.properties
+**/application.properties
+
+# IDE
+.idea/
+.vscode/
+*.iws
+*.iml
+*.ipr
+
+# OS
+.DS_Store
+Thumbs.db
