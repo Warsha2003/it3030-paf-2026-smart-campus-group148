@@ -1,11 +1,15 @@
 package com.smartcampus.service;
 
+import com.smartcampus.enums.NotificationType;
+import com.smartcampus.enums.Role;
 import com.smartcampus.model.Ticket;
 import com.smartcampus.model.TicketComment;
+import com.smartcampus.model.User;
 import com.smartcampus.repository.TicketRepository;
 import com.smartcampus.repository.TicketCommentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.smartcampus.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -21,13 +25,22 @@ import java.util.stream.Collectors;
 @Service
 public class TicketService {
 
-    @Autowired
-    private TicketRepository ticketRepository;
-
-    @Autowired
-    private TicketCommentRepository commentRepository;
+    private final TicketRepository ticketRepository;
+    private final TicketCommentRepository commentRepository;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     private final String UPLOAD_DIR = "uploads/tickets/";
+
+    public TicketService(TicketRepository ticketRepository,
+                         TicketCommentRepository commentRepository,
+                         NotificationService notificationService,
+                         UserRepository userRepository) {
+        this.ticketRepository = ticketRepository;
+        this.commentRepository = commentRepository;
+        this.notificationService = notificationService;
+        this.userRepository = userRepository;
+    }
 
     public Ticket createTicket(Ticket ticket, List<MultipartFile> images) throws IOException {
         List<String> imageUrls = new ArrayList<>();
@@ -46,7 +59,9 @@ public class TicketService {
         ticket.setStatus("OPEN");
         ticket.setCreatedAt(LocalDateTime.now());
         ticket.setUpdatedAt(LocalDateTime.now());
-        return ticketRepository.save(ticket);
+        Ticket savedTicket = ticketRepository.save(ticket);
+        notifyAdminsAboutNewTicket(savedTicket);
+        return savedTicket;
     }
 
     public List<Ticket> getAllTickets() {
@@ -91,10 +106,21 @@ public class TicketService {
                 .forEach(c -> commentRepository.deleteById(c.getId()));
     }
 
-    public TicketComment addComment(TicketComment comment) {
+    public TicketComment addComment(TicketComment comment, Role commenterRole) {
+        Ticket ticket = ticketRepository.findById(comment.getTicketId())
+                .orElseThrow(() -> new RuntimeException("Ticket not found: " + comment.getTicketId()));
+
         comment.setCreatedAt(LocalDateTime.now());
         comment.setUpdatedAt(LocalDateTime.now());
-        return commentRepository.save(comment);
+        TicketComment savedComment = commentRepository.save(comment);
+
+        if (isStaffRole(commenterRole)) {
+            notifyTicketReporterAboutStaffComment(ticket, savedComment);
+        } else {
+            notifyAdminsAboutUserComment(ticket, savedComment);
+        }
+
+        return savedComment;
     }
 
     public List<TicketComment> getCommentsByTicket(String ticketId) {
@@ -172,5 +198,75 @@ public class TicketService {
                     (t.getCategory()    != null && t.getCategory().toLowerCase().contains(lower))
                 )
                 .collect(Collectors.toList());
+    }
+
+    private void notifyAdminsAboutNewTicket(Ticket ticket) {
+        String reporter = defaultIfBlank(ticket.getReportedByEmail(), "A user");
+        String category = defaultIfBlank(ticket.getCategory(), "support request").toLowerCase();
+        String location = defaultIfBlank(ticket.getLocation(), "campus");
+
+        notifyAdmins(
+                "New Support Ticket",
+                reporter + " submitted a new " + category + " ticket for " + location + ".",
+                NotificationType.TICKET,
+                ticket.getId(),
+                ticket.getReportedByUserId()
+        );
+    }
+
+    private void notifyAdminsAboutUserComment(Ticket ticket, TicketComment comment) {
+        String commenter = defaultIfBlank(comment.getUsername(), "A user");
+        String location = defaultIfBlank(ticket.getLocation(), "campus");
+
+        notifyAdmins(
+                "New Ticket Comment",
+                commenter + " commented on a support ticket for " + location + ".",
+                NotificationType.COMMENT,
+                ticket.getId(),
+                comment.getUserId()
+        );
+    }
+
+    private void notifyTicketReporterAboutStaffComment(Ticket ticket, TicketComment comment) {
+        if (!StringUtils.hasText(ticket.getReportedByUserId())
+                || ticket.getReportedByUserId().equals(comment.getUserId())) {
+            return;
+        }
+
+        String commenter = defaultIfBlank(comment.getUsername(), "Support team");
+        String location = defaultIfBlank(ticket.getLocation(), "campus");
+
+        notificationService.createNotification(
+                ticket.getReportedByUserId(),
+                "Support Ticket Update",
+                commenter + " replied to your support ticket for " + location + ".",
+                NotificationType.COMMENT,
+                ticket.getId()
+        );
+    }
+
+    private void notifyAdmins(String title, String message, NotificationType type,
+                              String relatedEntityId, String actorUserId) {
+        userRepository.findByRoleAndActiveTrue(Role.ADMIN)
+                .stream()
+                .map(User::getId)
+                .filter(StringUtils::hasText)
+                .filter(adminId -> !adminId.equals(actorUserId))
+                .distinct()
+                .forEach(adminId -> notificationService.createNotification(
+                        adminId,
+                        title,
+                        message,
+                        type,
+                        relatedEntityId
+                ));
+    }
+
+    private boolean isStaffRole(Role role) {
+        return role == Role.ADMIN || role == Role.TECHNICIAN;
+    }
+
+    private String defaultIfBlank(String value, String fallback) {
+        return StringUtils.hasText(value) ? value.trim() : fallback;
     }
 }

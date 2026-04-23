@@ -2,11 +2,12 @@ package com.smartcampus.controller;
 
 import com.smartcampus.model.Ticket;
 import com.smartcampus.model.TicketComment;
+import com.smartcampus.security.CustomUserDetails;
 import com.smartcampus.service.TicketService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,11 +26,11 @@ public class TicketController {
     public ResponseEntity<?> createTicket(
             @RequestPart("ticket") Ticket ticket,
             @RequestPart(value = "images", required = false) List<MultipartFile> images,
-            Authentication authentication) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
-            // Get current logged in user email from JWT
-            if (authentication != null) {
-                ticket.setReportedByEmail(authentication.getName());
+            if (userDetails != null) {
+                ticket.setReportedByUserId(userDetails.getUser().getId());
+                ticket.setReportedByEmail(userDetails.getUser().getEmail());
             }
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ticketService.createTicket(ticket, images));
@@ -112,10 +113,23 @@ public class TicketController {
     @PostMapping("/{ticketId}/comments")
     public ResponseEntity<?> addComment(
             @PathVariable String ticketId,
-            @RequestBody TicketComment comment) {
+            @RequestBody TicketComment comment,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         comment.setTicketId(ticketId);
+
+        if (userDetails != null) {
+            comment.setUserId(userDetails.getUser().getId());
+            String displayName = userDetails.getUser().getName();
+            comment.setUsername((displayName != null && !displayName.isBlank())
+                    ? displayName
+                    : userDetails.getUser().getEmail());
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ticketService.addComment(comment));
+                .body(ticketService.addComment(
+                        comment,
+                        userDetails != null ? userDetails.getUser().getRole() : null
+                ));
     }
 
     // GET /api/tickets/{ticketId}/comments — Get all comments
@@ -129,11 +143,12 @@ public class TicketController {
     @PutMapping("/comments/{commentId}")
     public ResponseEntity<?> updateComment(
             @PathVariable String commentId,
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
             return ResponseEntity.ok(ticketService.updateComment(
                     commentId,
-                    body.get("userId"),
+                    userDetails != null ? userDetails.getUser().getId() : body.get("userId"),
                     body.get("content")));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -145,9 +160,13 @@ public class TicketController {
     @DeleteMapping("/comments/{commentId}")
     public ResponseEntity<?> deleteComment(
             @PathVariable String commentId,
-            @RequestParam String userId) {
+            @RequestParam(required = false) String userId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
-            ticketService.deleteComment(commentId, userId);
+            ticketService.deleteComment(
+                    commentId,
+                    userDetails != null ? userDetails.getUser().getId() : userId
+            );
             return ResponseEntity.ok(Map.of("message", "Comment deleted"));
         } catch (Exception e) {
             return ResponseEntity.badRequest()

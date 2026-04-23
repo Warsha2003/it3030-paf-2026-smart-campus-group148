@@ -1,9 +1,11 @@
 package com.smartcampus.repository;
 
+import com.smartcampus.enums.Role;
 import com.smartcampus.model.User;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -26,4 +28,10 @@ public interface UserRepository extends MongoRepository<User, String> {
      * Used to decide whether to create a new user or update existing.
      */
     boolean existsByEmail(String email);
+
+    /**
+     * Find all active users for a specific role.
+     * Used for fan-out notifications such as alerting admins about new tickets.
+     */
+    List<User> findByRoleAndActiveTrue(Role role);
 }
