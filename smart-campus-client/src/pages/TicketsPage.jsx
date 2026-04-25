@@ -233,7 +233,7 @@ export default function TicketsPage() {
       {/* ── Page Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>🔧 Maintenance & Incidents</h1>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>🔧 Maintenance</h1>
           <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 14 }}>
             {isAdmin ? '👑 Admin View — Managing all campus tickets' : 'Report and track campus maintenance issues'}
           </p>
