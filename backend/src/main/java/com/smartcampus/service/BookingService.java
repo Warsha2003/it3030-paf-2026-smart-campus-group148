@@ -6,6 +6,7 @@ import com.smartcampus.dto.CancelBookingRequest;
 import com.smartcampus.dto.CreateBookingRequest;
 import com.smartcampus.enums.BookingStatus;
 import com.smartcampus.enums.NotificationType;
+import com.smartcampus.enums.Role;
 import com.smartcampus.enums.ResourceStatus;
 import com.smartcampus.exception.BadRequestException;
 import com.smartcampus.exception.ConflictException;
@@ -71,6 +72,7 @@ public class BookingService {
         booking.setStatus(BookingStatus.PENDING);
 
         Booking saved = bookingRepository.save(booking);
+        notifyAdminsAboutPendingBooking(saved, resource, currentUser);
         return mapToDto(saved);
     }
 
@@ -220,6 +222,27 @@ public class BookingService {
                 NotificationType.BOOKING,
                 booking.getId()
         );
+    }
+
+    private void notifyAdminsAboutPendingBooking(Booking booking, Resource resource, User requester) {
+        String requesterName = requester.getName() != null && !requester.getName().isBlank()
+                ? requester.getName().trim()
+                : "A user";
+        String title = "Pending Booking Request";
+        String message = requesterName + " submitted a booking request for " + resource.getName()
+                + " on " + booking.getBookingDate()
+                + " from " + booking.getStartTime() + " to " + booking.getEndTime()
+                + ". Review it from the admin bookings page.";
+
+        userRepository.findByRole(Role.ADMIN).stream()
+                .filter(User::isActive)
+                .forEach(admin -> notificationService.createNotification(
+                        admin.getId(),
+                        title,
+                        message,
+                        NotificationType.BOOKING,
+                        booking.getId()
+                ));
     }
 
     private void validateTimeRange(LocalTime startTime, LocalTime endTime) {

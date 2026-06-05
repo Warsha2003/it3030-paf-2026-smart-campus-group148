@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -109,6 +110,51 @@ class BookingServiceTest {
 
         assertThrows(ConflictException.class, () -> bookingService.createBooking(request, requester));
         verify(bookingRepository, never()).save(any(Booking.class));
+    }
+
+    @Test
+    void createBookingShouldNotifyAllActiveAdminsAboutPendingRequest() {
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setResourceId(resource.getId());
+        request.setBookingDate(LocalDate.now().plusDays(1));
+        request.setStartTime(LocalTime.of(10, 0));
+        request.setEndTime(LocalTime.of(11, 0));
+        request.setPurpose("Department meeting");
+        request.setExpectedAttendees(8);
+
+        User secondAdmin = new User("admin-2", "Backup Admin", "backup@smartcampus.edu", null, null,
+                "CREDENTIALS", Role.ADMIN, false, Instant.now(), Instant.now());
+
+        when(resourceRepository.findById(resource.getId())).thenReturn(Optional.of(resource));
+        when(bookingRepository.findByResourceIdAndBookingDateAndStatusIn(
+                eq(resource.getId()),
+                eq(request.getBookingDate()),
+                any())
+        ).thenReturn(List.of());
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> {
+            Booking booking = invocation.getArgument(0);
+            booking.setId("booking-created");
+            return booking;
+        });
+        when(userRepository.findByRole(Role.ADMIN)).thenReturn(List.of(admin, secondAdmin));
+        when(userRepository.findById(requester.getId())).thenReturn(Optional.of(requester));
+
+        bookingService.createBooking(request, requester);
+
+        verify(notificationService, times(1)).createNotification(
+                eq(admin.getId()),
+                eq("Pending Booking Request"),
+                anyString(),
+                eq(NotificationType.BOOKING),
+                eq("booking-created")
+        );
+        verify(notificationService, never()).createNotification(
+                eq(secondAdmin.getId()),
+                anyString(),
+                anyString(),
+                eq(NotificationType.BOOKING),
+                eq("booking-created")
+        );
     }
 
     @Test

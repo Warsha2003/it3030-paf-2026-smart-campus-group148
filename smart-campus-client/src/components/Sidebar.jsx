@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useNotifications } from '../hooks/useNotifications';
 
 const ROLE_COLORS = {
   ADMIN: '#ef4444',
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -57,6 +59,11 @@ export default function Sidebar() {
             >
               <span className="sidebar__link-icon">{item.icon}</span>
               {!collapsed && <span className="sidebar__link-label">{item.label}</span>}
+              {item.path === '/admin/notifications' && unreadCount > 0 && (
+                <span className="sidebar__link-badge" aria-label={`${unreadCount} unread notifications`}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </Link>
           </div>
         ))}
